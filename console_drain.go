@@ -1,17 +1,20 @@
 package logtap
 
-
-
 import "fmt"
 
-
-type ConsoleDrain int
-
-
-func NewConsoleDrain() ConsoleDrain {
-  return ConsoleDrain(0)
+type ConsoleDrain struct {
+  log Logger
 }
 
-func (c ConsoleDrain) Write(msg Message) {
-  fmt.Println(msg.Time, msg.Priority, msg.Content)
+func NewConsoleDrain() *ConsoleDrain {
+  return &ConsoleDrain{DevNullLogger(0)}
+}
+
+func (c *ConsoleDrain) SetLogger(l Logger) {
+  c.log = l
+}
+
+func (c *ConsoleDrain) Write(msg Message) {
+  c.log.Info("[concole][write] message:"+msg.Content)
+  fmt.Printf("[%s] <%d> %s", msg.Time, msg.Priority, msg.Content)
 }

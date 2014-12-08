@@ -12,18 +12,20 @@ import (
 type HistoricalDrain struct {
   port int
   max  int
+  log  Logger
   db   *bolt.DB
 }
 
 // NewHistoricalDrain returns a new instance of a HistoricalDrain
-func NewHistoricalDrain(port int, file string, max int) HistoricalDrain {
+func NewHistoricalDrain(port int, file string, max int) *HistoricalDrain {
   db, err := bolt.Open(file, 0644, nil)
   if err != nil {
     db, err = bolt.Open("./bolt.db", 0644, nil)
   }
-  return HistoricalDrain{
+  return &HistoricalDrain{
     port: port,
     max:  max,
+    log:  DevNullLogger(0),
     db: db,
   }
 }
@@ -48,6 +50,7 @@ func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
   } else {
     limit = 10000
   }
+  h.log.Info("limit: %d", limit)
   h.db.View(func(tx *bolt.Tx) error {
     // Create a new bucket.
     b := tx.Bucket([]byte("log"))
@@ -58,7 +61,7 @@ func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
     if int64(b.Stats().KeyN) > limit {
       c.First()
       move_forward := int64(b.Stats().KeyN) - limit
-      for i := int64(0); i < move_forward; i++ {
+      for i := int64(1); i < move_forward; i++ {
         c.Next()
       }
     } else {
@@ -74,19 +77,24 @@ func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
     
 }
 
+
+func (h *HistoricalDrain) SetLogger(l Logger) {
+  h.log = l
+}
+
 // write drops data into a capped collection of logs
 // if we hit the limit the last log item will be removed from the beginning
-func (h HistoricalDrain) Write(msg Message) {
-  fmt.Println(msg)
+func (h *HistoricalDrain) Write(msg Message) {
+  h.log.Info("[Historical][write] message: (%s)%s",msg.Time.String(), msg.Content)
   h.db.Update(func(tx *bolt.Tx) error { 
     bucket, err := tx.CreateBucketIfNotExists([]byte("log"))
     if err != nil {
-      fmt.Println(err)
+      h.log.Error("[Historical][write] ERROR:"+err.Error())
       return err
     }
     err = bucket.Put([]byte(msg.Time.String()), []byte(msg.Content))
     if err != nil {
-      fmt.Println(err)
+      h.log.Error("[Historical][write] ERROR:"+err.Error())
       return err
     }
 

@@ -2,10 +2,7 @@ package logtap
 
 
 import (
-  "strconv"
-  "net"
-  "github.com/jeromer/syslogparser/rfc3164"
-  "github.com/jeromer/syslogparser/rfc5424"
+  "reflect"
   "time"
 )
 
@@ -26,8 +23,14 @@ func (d DevNullLogger) Info(thing string,v ...interface{}) {}
 func (d DevNullLogger) Debug(thing string,v ...interface{}) {}
 func (d DevNullLogger) Trace(thing string,v ...interface{}) {}
 
+type Collector interface {
+  CollectChan() chan Message
+  SetLogger(Logger)
+}
+
 type Drain interface {
   Write(Message)
+  SetLogger(Logger)
 }
 
 type Message struct {
@@ -38,98 +41,77 @@ type Message struct {
 
 type Logtap struct {
   log Logger
-
-  Port   int
+  Collectors map[string]Collector
   Drains map[string]Drain
 }
 
-
-func New(port int, log Logger) *Logtap {
+// New establishes a new logtap object
+// and makes sure it has the some logger
+func New(log Logger) *Logtap {
   if log == nil {
     log = DevNullLogger(0)
   }
   return &Logtap{
     log: log,
-    Port: port,
+    Collectors: make(map[string]Collector),
     Drains: make(map[string]Drain),
   }
 }
 
+// AddDrain addes a drain to the listeners and sets its logger
 func (l *Logtap) AddDrain(tag string, d Drain) {
+  d.SetLogger(l.log)
   l.Drains[tag] = d
 }
 
-func (l *Logtap) RemoveDrain(tag string, d Drain) {
+// RemoveDrain drops a drain
+func (l *Logtap) RemoveDrain(tag string) {
   delete(l.Drains, tag)
 }
 
-func (l *Logtap) Start() {
-  go func () {
-    udpAddress, err := net.ResolveUDPAddr("udp4",("0.0.0.0:"+strconv.Itoa(l.Port)))
-    if err != nil {
-      l.log.Error("error resolving UDP address on ", l.Port)
-      l.log.Error(err.Error())
-      return
-    }
-
-    conn, err := net.ListenUDP("udp", udpAddress)
-    if err != nil {
-      l.log.Error("error listening on UDP port ", l.Port)
-      l.log.Error(err.Error())
-      return
-    }
-    defer conn.Close()
-
-    var buf []byte = make([]byte, 1024)
-    for {
-      n, address, err := conn.ReadFromUDP(buf)
-      if err != nil {
-        l.log.Error("error reading data from connection")
-        l.log.Error(err.Error())
-      }
-      if address != nil {
-        l.log.Info("got message from "+address.String()+" with n = "+strconv.Itoa(n))
-        if n > 0 {
-          msg := l.ParseMessage(buf[0:n])
-          l.log.Info("msg content: "+msg.Content)
-          l.writeMessage(msg)
-        }
-      }
-    }
-  }()
-
+// AddCollector adds a collector and begins listening to it
+// also adds logging
+func (l *Logtap) AddCollector(tag string, c Collector) {
+  c.SetLogger(l.log)
+  l.Collectors[tag] = c
 }
 
+// RemoveCollector remove given collector
+func (l *Logtap) RemoveCollector(tag string) {
+  delete(l.Collectors, tag)
+}
+
+// Start begins listening to all the collectors that are registered.
+// it then broadcasts all messages to all the drains that are registered
+// this is backgrounded so it can be used by a parent process without getting in the way
+func (l *Logtap) Start() {
+  go func() {
+    for {
+      cases := make([]reflect.SelectCase, len(l.Collectors))
+      for _, col := range l.Collectors {
+        cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(col.CollectChan())})
+      }
+      // when you append to a nil value [] the first element is the nil value object
+      // so its best to remove it
+      cases = cases[1:]
+      _, value, ok := reflect.Select(cases)
+      // ok will be true if the channel has not been closed.
+      if ok {
+        l.log.Info("[start][collect] %v", value.Interface().(Message))
+        l.writeMessage(value.Interface().(Message))
+      }
+      
+    }
+    
+  }()
+}
+
+// writeMessage broadcasts to all drains in seperate go routines
 func (l *Logtap) writeMessage(msg Message) {
   for _, drain := range l.Drains {
-    go func () {
-      drain.Write(msg)
-    }()
+    go func (d Drain) {
+      d.Write(msg)
+    }(drain)
   }
 }
 
-func (l *Logtap) ParseMessage(b []byte) (msg Message) {
-  p := rfc3164.NewParser(b)
-  err := p.Parse()
-  if err == nil {
-    parsedData := p.Dump()
-    msg.Time = parsedData["timestamp"].(time.Time)
-    msg.Priority = parsedData["priority"].(int)
-    msg.Content = parsedData["content"].(string)
-  } else {
-    p := rfc5424.NewParser(b)
-    err := p.Parse()
-    if err == nil {
-      parsedData := p.Dump()
-      msg.Time = parsedData["timestamp"].(time.Time)
-      msg.Priority = parsedData["priority"].(int)
-      msg.Content = parsedData["content"].(string)
-    } else {
-      l.log.Error("Unable to parse data: "+string(b))
-      msg.Time = time.Now()
-      msg.Priority = 1
-      msg.Content = string(b)
-    }
-  }
-  return
-}
