@@ -1,5 +1,6 @@
 package logtap
 
+// Overview
 
 import (
   "reflect"
@@ -45,7 +46,7 @@ type Logtap struct {
   Drains map[string]Drain
 }
 
-// New establishes a new logtap object
+// Establishes a new logtap object
 // and makes sure it has the some logger
 func New(log Logger) *Logtap {
   if log == nil {
