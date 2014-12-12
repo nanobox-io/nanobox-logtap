@@ -15,6 +15,7 @@ type SyslogCollector struct {
   Port   int
 }
 
+// NewSyslogCollector creates a new syslog collector
 func NewSyslogCollector(port int) *SyslogCollector {
   return &SyslogCollector{
     log: DevNullLogger(0),
@@ -23,14 +24,21 @@ func NewSyslogCollector(port int) *SyslogCollector {
   }
 }
 
+// SetLogger really allows the logtap main struct
+// to assign its own logger to the syslog collector
 func (s *SyslogCollector) SetLogger(l Logger) {
   s.log = l
 }
 
+// CollectChan grats access to the collection channel
+// any logs collected from syslog will be translated into a message
+// and dropped on this channel for processing
 func (s *SyslogCollector) CollectChan() chan Message {
   return s.wChan
 }
 
+// Start begins listening to the syslog port transfers all
+// syslog messages on the wChan
 func (s *SyslogCollector) Start() {
   go func () {
 
@@ -61,7 +69,7 @@ func (s *SyslogCollector) Start() {
       if address != nil {
         // s.log.Info("[syslog][start] got message from "+address.String()+" with n = "+strconv.Itoa(n))
         if n > 0 {
-          msg := s.ParseMessage(buf[0:n])
+          msg := s.parseMessage(buf[0:n])
           s.log.Info("[syslog][start] msg content: "+msg.Content)
           s.wChan <- msg
         }
@@ -70,7 +78,11 @@ func (s *SyslogCollector) Start() {
   }()
 }
 
-func (s *SyslogCollector) ParseMessage(b []byte) (msg Message) {
+// parseMessage parses the syslog message and returns a msg
+// if the msg is not parsable or a standard formatted syslog message
+// it will drop the whole message into the content and make up a timestamp
+// and a priority
+func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
   p := rfc3164.NewParser(b)
   err := p.Parse()
   if err == nil {

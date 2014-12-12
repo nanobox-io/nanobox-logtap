@@ -77,7 +77,8 @@ func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
     
 }
 
-
+// SetLogger really allows the logtap main struct
+// to assign its own logger to the historical drain
 func (h *HistoricalDrain) SetLogger(l Logger) {
   h.log = l
 }

@@ -11,15 +11,15 @@ func main() {
   ltap.Start()
 
   sysc := logtap.NewSyslogCollector(514)
-  l.AddCollector("syslog", sysc)
+  ltap.AddCollector("syslog", sysc)
   sysc.Start()
 
   conc := logtap.NewConsoleDrain()
-  l.AddDrain("concole", conc)
+  ltap.AddDrain("concole", conc)
 
   hist := logtap.NewHistoricalDrain(8080, "./bolt.db", 1000)
   hist.Start()
-  l.AddDrain("history", hist)
+  ltap.AddDrain("history", hist)
 
   // pub := logtap.newPublishDrain(publisher)
   // l.AddDrain("mist", pub)

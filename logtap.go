@@ -109,9 +109,7 @@ func (l *Logtap) Start() {
 // writeMessage broadcasts to all drains in seperate go routines
 func (l *Logtap) writeMessage(msg Message) {
   for _, drain := range l.Drains {
-    go func (d Drain) {
-      d.Write(msg)
-    }(drain)
+    go drain.Write(msg)
   }
 }
 
