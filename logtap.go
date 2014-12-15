@@ -5,6 +5,7 @@ package logtap
 import (
   "reflect"
   "time"
+  "errors"
 )
 
 type Logger interface {
@@ -15,14 +16,6 @@ type Logger interface {
   Debug(string, ...interface{})
   Trace(string, ...interface{})
 }
-
-type DevNullLogger int8
-func (d DevNullLogger) Fatal(thing string,v ...interface{}) {}
-func (d DevNullLogger) Error(thing string,v ...interface{}) {}
-func (d DevNullLogger) Warn(thing string,v ...interface{}) {}
-func (d DevNullLogger) Info(thing string,v ...interface{}) {}
-func (d DevNullLogger) Debug(thing string,v ...interface{}) {}
-func (d DevNullLogger) Trace(thing string,v ...interface{}) {}
 
 type Collector interface {
   CollectChan() chan Message
@@ -48,9 +41,9 @@ type Logtap struct {
 
 // Establishes a new logtap object
 // and makes sure it has the some logger
-func New(log Logger) *Logtap {
+func New(log Logger) *Logtap, error {
   if log == nil {
-    log = DevNullLogger(0)
+    return nil, errors.New("Cannot create a new Logtap without a logger")
   }
   return &Logtap{
     log: log,
