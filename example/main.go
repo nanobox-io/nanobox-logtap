@@ -7,7 +7,10 @@ import "time"
 func main() {
   log := lumber.NewConsoleLogger(lumber.INFO)
   log.Prefix("[logtap]")
-  ltap := logtap.New(log)
+  ltap, err := logtap.New(log)
+  if err != nil {
+    
+  }
   ltap.Start()
 
   sysc := logtap.NewSyslogCollector(514)

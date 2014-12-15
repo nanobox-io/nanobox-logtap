@@ -41,7 +41,7 @@ type Logtap struct {
 
 // Establishes a new logtap object
 // and makes sure it has the some logger
-func New(log Logger) *Logtap, error {
+func New(log Logger) (*Logtap, error) {
   if log == nil {
     return nil, errors.New("Cannot create a new Logtap without a logger")
   }
@@ -49,7 +49,7 @@ func New(log Logger) *Logtap, error {
     log: log,
     Collectors: make(map[string]Collector),
     Drains: make(map[string]Drain),
-  }
+  }, nil
 }
 
 // AddDrain addes a drain to the listeners and sets its logger

@@ -5,8 +5,7 @@ import "github.com/jcelliott/lumber"
 import "time"
 
 func ExampleLogtap() {
-  // no logger necessary just pass nil ni
-  ltap := logtap.New(nil)
+  ltap := logtap.New(logger)
   ltap.Start()
 
   // fire up a collector

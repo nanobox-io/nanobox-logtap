@@ -18,7 +18,6 @@ type SyslogCollector struct {
 // NewSyslogCollector creates a new syslog collector
 func NewSyslogCollector(port int) *SyslogCollector {
   return &SyslogCollector{
-    log: DevNullLogger(0),
     Port: port,
     wChan: make(chan Message),
   }

@@ -25,7 +25,6 @@ func NewHistoricalDrain(port int, file string, max int) *HistoricalDrain {
   return &HistoricalDrain{
     port: port,
     max:  max,
-    log:  DevNullLogger(0),
     db: db,
   }
 }

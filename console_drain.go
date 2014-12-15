@@ -8,7 +8,7 @@ type ConsoleDrain struct {
 
 // NewConcoleDrain creates a new drain and uses a devnull logger
 func NewConsoleDrain() *ConsoleDrain {
-  return &ConsoleDrain{DevNullLogger(0)}
+  return &ConsoleDrain{}
 }
 
 // SetLogger really allows the logtap main struct
