@@ -35,7 +35,10 @@ func NewHistoricalDrain(port int, file string, max int) *HistoricalDrain {
 func (h *HistoricalDrain) Start() {
 	go func() {
 		http.HandleFunc("/", h.handler)
-		http.ListenAndServe(":"+strconv.Itoa(h.port), nil)
+		err := http.ListenAndServe(":"+strconv.Itoa(h.port), nil)
+		if err != nil {
+			h.log.Error(err.Error())
+		}
 	}()
 }
 
