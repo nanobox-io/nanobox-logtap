@@ -3,8 +3,8 @@ Package logtap is a system of log collectors and log drains
 
 Collectors
 
-There is only one collector at the moment but that will be expanded in the 
-future but the purpose of these collectors is to collect logging data and 
+There is only one collector at the moment but that will be expanded in the
+future but the purpose of these collectors is to collect logging data and
 Drop that data on a channel the one collector now lists for syslog messages
 on a given port.
 

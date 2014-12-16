@@ -3,20 +3,20 @@ package logtap
 import "fmt"
 import "github.com/nanobox-core/hatchet"
 
-type Publisher interface{
-  Publish(tags []string, data string)
+type Publisher interface {
+	Publish(tags []string, data string)
 }
 
 type PublishDrain struct {
-  log hatchet.Logger
-  publisher Publisher
+	log       hatchet.Logger
+	publisher Publisher
 }
 
 // NewPublishDrain creates a new publish drain and returns it
 func NewPublishDrain(pub Publisher) *PublishDrain {
-  return &PublishDrain{
-    publisher: pub,
-  }
+	return &PublishDrain{
+		publisher: pub,
+	}
 }
 
 // SetLogger really allows the logtap main struct
@@ -25,11 +25,11 @@ func NewPublishDrain(pub Publisher) *PublishDrain {
 // it is necessary to have the method to match the interface
 // the assumption here is that the publisher will do its own loggin
 func (p *PublishDrain) SetLogger(l hatchet.Logger) {
-  p.log = l
+	p.log = l
 }
 
 // Write formats the data coming in on the message and drops it on the publish method
 // in a format the publisher can use
 func (p *PublishDrain) Write(msg Message) {
-  p.publisher.Publish([]string{"log"}, fmt.Sprintf("[%s] %s", msg.Time, msg.Content))
+	p.publisher.Publish([]string{"log"}, fmt.Sprintf("[%s] %s", msg.Time, msg.Content))
 }
