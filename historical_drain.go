@@ -3,6 +3,7 @@ package logtap
 
 import (
   "github.com/boltdb/bolt"
+  "github.com/nanobox-core/hatchet"
   "net/http"
   "strconv"
   "fmt"
@@ -12,7 +13,7 @@ import (
 type HistoricalDrain struct {
   port int
   max  int
-  log  Logger
+  log  hatchet.Logger
   db   *bolt.DB
 }
 
@@ -78,7 +79,7 @@ func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
 
 // SetLogger really allows the logtap main struct
 // to assign its own logger to the historical drain
-func (h *HistoricalDrain) SetLogger(l Logger) {
+func (h *HistoricalDrain) SetLogger(l hatchet.Logger) {
   h.log = l
 }
 

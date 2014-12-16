@@ -6,25 +6,18 @@ import (
   "reflect"
   "time"
   "errors"
+  "github.com/nanobox-core/hatchet"
 )
 
-type Logger interface {
-  Fatal(string, ...interface{})
-  Error(string, ...interface{})
-  Warn(string, ...interface{})
-  Info(string, ...interface{})
-  Debug(string, ...interface{})
-  Trace(string, ...interface{})
-}
 
 type Collector interface {
   CollectChan() chan Message
-  SetLogger(Logger)
+  SetLogger(hatchet.Logger)
 }
 
 type Drain interface {
   Write(Message)
-  SetLogger(Logger)
+  SetLogger(hatchet.Logger)
 }
 
 type Message struct {
@@ -34,14 +27,14 @@ type Message struct {
 }
 
 type Logtap struct {
-  log Logger
+  log hatchet.Logger
   Collectors map[string]Collector
   Drains map[string]Drain
 }
 
 // Establishes a new logtap object
 // and makes sure it has the some logger
-func New(log Logger) (*Logtap, error) {
+func New(log hatchet.Logger) (*Logtap, error) {
   if log == nil {
     return nil, errors.New("Cannot create a new Logtap without a logger")
   }

@@ -5,12 +5,13 @@ import (
   "net"
   "github.com/jeromer/syslogparser/rfc3164"
   "github.com/jeromer/syslogparser/rfc5424"
+  "github.com/nanobox-core/hatchet"
   "time"
 )
 
 type SyslogCollector struct {
   wChan chan Message
-  log Logger
+  log hatchet.Logger
 
   Port   int
 }
@@ -25,7 +26,7 @@ func NewSyslogCollector(port int) *SyslogCollector {
 
 // SetLogger really allows the logtap main struct
 // to assign its own logger to the syslog collector
-func (s *SyslogCollector) SetLogger(l Logger) {
+func (s *SyslogCollector) SetLogger(l hatchet.Logger) {
   s.log = l
 }
 

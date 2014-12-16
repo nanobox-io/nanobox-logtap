@@ -1,9 +1,10 @@
 package logtap
 
 import "fmt"
+import "github.com/nanobox-core/hatchet"
 
 type ConsoleDrain struct {
-  log Logger
+  log hatchet.Logger
 }
 
 // NewConcoleDrain creates a new drain and uses a devnull logger
@@ -13,7 +14,7 @@ func NewConsoleDrain() *ConsoleDrain {
 
 // SetLogger really allows the logtap main struct
 // to assign its own logger to the concole drain
-func (c *ConsoleDrain) SetLogger(l Logger) {
+func (c *ConsoleDrain) SetLogger(l hatchet.Logger) {
   c.log = l
 }
 
