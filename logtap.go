@@ -5,10 +5,8 @@ package logtap
 import (
   "reflect"
   "time"
-  "errors"
   "github.com/nanobox-core/hatchet"
 )
-
 
 type Collector interface {
   CollectChan() chan Message
@@ -34,15 +32,15 @@ type Logtap struct {
 
 // Establishes a new logtap object
 // and makes sure it has the some logger
-func New(log hatchet.Logger) (*Logtap, error) {
+func New(log hatchet.Logger) *Logtap {
   if log == nil {
-    return nil, errors.New("Cannot create a new Logtap without a logger")
+    log = hatchet.DevNullLogger{}
   }
   return &Logtap{
     log: log,
     Collectors: make(map[string]Collector),
     Drains: make(map[string]Drain),
-  }, nil
+  }
 }
 
 // AddDrain addes a drain to the listeners and sets its logger
