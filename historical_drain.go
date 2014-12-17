@@ -37,7 +37,7 @@ func (h *HistoricalDrain) Start() {
 		http.HandleFunc("/logtap/", h.handler)
 		err := http.ListenAndServe(":"+h.port, nil)
 		if err != nil {
-			h.log.Error(err.Error())
+			h.log.Error("[LOGTAP]"+err.Error())
 		}
 	}()
 }
@@ -52,7 +52,7 @@ func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		limit = 10000
 	}
-	h.log.Info("limit: %d", limit)
+	h.log.Debug("[LOGTAP][handler] limit: %d", limit)
 	h.db.View(func(tx *bolt.Tx) error {
 		// Create a new bucket.
 		b := tx.Bucket([]byte("log"))
@@ -88,16 +88,16 @@ func (h *HistoricalDrain) SetLogger(l hatchet.Logger) {
 // write drops data into a capped collection of logs
 // if we hit the limit the last log item will be removed from the beginning
 func (h *HistoricalDrain) Write(msg Message) {
-	h.log.Info("[Historical][write] message: (%s)%s", msg.Time.String(), msg.Content)
+	h.log.Debug("[LOGTAP][Historical][write] message: (%s)%s", msg.Time.String(), msg.Content)
 	h.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("log"))
 		if err != nil {
-			h.log.Error("[Historical][write] ERROR:" + err.Error())
+			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
 			return err
 		}
 		err = bucket.Put([]byte(msg.Time.String()), []byte(msg.Content))
 		if err != nil {
-			h.log.Error("[Historical][write] ERROR:" + err.Error())
+			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
 			return err
 		}
 

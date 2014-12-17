@@ -43,32 +43,32 @@ func (s *SyslogCollector) Start() {
 
 		udpAddress, err := net.ResolveUDPAddr("udp4", ("0.0.0.0:" + s.Port))
 		if err != nil {
-			s.log.Error("error resolving UDP address on ", s.Port)
-			s.log.Error(err.Error())
+			s.log.Error("[LOGTAP][syslog]resolving UDP address on ", s.Port)
+			s.log.Error("[LOGTAP][syslog]"+err.Error())
 			return
 		}
 
 		conn, err := net.ListenUDP("udp", udpAddress)
 		if err != nil {
-			s.log.Error("error listening on UDP port ", s.Port)
-			s.log.Error(err.Error())
+			s.log.Error("[LOGTAP][syslog]listening on UDP port ", s.Port)
+			s.log.Error("[LOGTAP][syslog]"+err.Error())
 			return
 		}
 		defer conn.Close()
 
 		var buf []byte = make([]byte, 1024)
 		for {
-			// s.log.Info("[syslog][start] listen")
+			s.log.Debug("[LOGTAP][syslog][start] listen")
 			n, address, err := conn.ReadFromUDP(buf)
 			if err != nil {
-				s.log.Error("error reading data from connection")
-				s.log.Error(err.Error())
+				s.log.Error("[LOGTAP][syslog]reading data from connection")
+				s.log.Error("[LOGTAP][syslog]"+err.Error())
 			}
 			if address != nil {
-				// s.log.Info("[syslog][start] got message from "+address.String()+" with n = "+strconv.Itoa(n))
+				s.log.Debug("[LOGTAP][syslog][start] got message from "+address.String()+" with n = "+strconv.Itoa(n))
 				if n > 0 {
 					msg := s.parseMessage(buf[0:n])
-					s.log.Info("[syslog][start] msg content: " + msg.Content)
+					s.log.Debug("[LOGTAP][syslog][start] msg content: " + msg.Content)
 					s.wChan <- msg
 				}
 			}
@@ -97,7 +97,7 @@ func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
 			msg.Priority = parsedData["priority"].(int)
 			msg.Content = parsedData["content"].(string)
 		} else {
-			s.log.Error("Unable to parse data: " + string(b))
+			s.log.Error("[LOGTAP]Unable to parse data: " + string(b))
 			msg.Time = time.Now()
 			msg.Priority = 1
 			msg.Content = string(b)

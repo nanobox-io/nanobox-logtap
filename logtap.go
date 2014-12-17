@@ -82,7 +82,7 @@ func (l *Logtap) Start() {
 			_, value, ok := reflect.Select(cases)
 			// ok will be true if the channel has not been closed.
 			if ok {
-				l.log.Info("[start][collect] %v", value.Interface().(Message))
+				l.log.Debug("[LOGTAP][start][collect] %v", value.Interface().(Message))
 				l.writeMessage(value.Interface().(Message))
 			}
 

@@ -20,6 +20,6 @@ func (c *ConsoleDrain) SetLogger(l hatchet.Logger) {
 
 // Write formats the message given and prints it to stdout
 func (c *ConsoleDrain) Write(msg Message) {
-	c.log.Info("[concole][write] message:" + msg.Content)
+	c.log.Debug("[LOGTAP][concole][write] message:" + msg.Content)
 	fmt.Printf("[%s] <%d> %s", msg.Time, msg.Priority, msg.Content)
 }
