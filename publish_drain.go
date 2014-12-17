@@ -31,5 +31,6 @@ func (p *PublishDrain) SetLogger(l hatchet.Logger) {
 // Write formats the data coming in on the message and drops it on the publish method
 // in a format the publisher can use
 func (p *PublishDrain) Write(msg Message) {
+	log.Info("Publishing:[%s] %s", msg.Time, msg.Content)
 	p.publisher.Publish([]string{"log"}, fmt.Sprintf("[%s] %s", msg.Time, msg.Content))
 }
