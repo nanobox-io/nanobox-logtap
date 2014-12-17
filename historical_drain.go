@@ -10,14 +10,14 @@ import (
 
 // HistoricalDrain matches the drain interface
 type HistoricalDrain struct {
-	port int
+	port string
 	max  int
 	log  hatchet.Logger
 	db   *bolt.DB
 }
 
 // NewHistoricalDrain returns a new instance of a HistoricalDrain
-func NewHistoricalDrain(port int, file string, max int) *HistoricalDrain {
+func NewHistoricalDrain(port string, file string, max int) *HistoricalDrain {
 	db, err := bolt.Open(file, 0644, nil)
 	if err != nil {
 		db, err = bolt.Open("./bolt.db", 0644, nil)
@@ -35,7 +35,7 @@ func NewHistoricalDrain(port int, file string, max int) *HistoricalDrain {
 func (h *HistoricalDrain) Start() {
 	go func() {
 		http.HandleFunc("/", h.handler)
-		err := http.ListenAndServe(":"+strconv.Itoa(h.port), nil)
+		err := http.ListenAndServe(":"+h.port, nil)
 		if err != nil {
 			h.log.Error(err.Error())
 		}

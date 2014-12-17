@@ -5,7 +5,6 @@ import (
 	"github.com/jeromer/syslogparser/rfc5424"
 	"github.com/nanobox-core/hatchet"
 	"net"
-	"strconv"
 	"time"
 )
 
@@ -13,11 +12,11 @@ type SyslogCollector struct {
 	wChan chan Message
 	log   hatchet.Logger
 
-	Port int
+	Port string
 }
 
 // NewSyslogCollector creates a new syslog collector
-func NewSyslogCollector(port int) *SyslogCollector {
+func NewSyslogCollector(port string) *SyslogCollector {
 	return &SyslogCollector{
 		Port:  port,
 		wChan: make(chan Message),
@@ -42,7 +41,7 @@ func (s *SyslogCollector) CollectChan() chan Message {
 func (s *SyslogCollector) Start() {
 	go func() {
 
-		udpAddress, err := net.ResolveUDPAddr("udp4", ("0.0.0.0:" + strconv.Itoa(s.Port)))
+		udpAddress, err := net.ResolveUDPAddr("udp4", ("0.0.0.0:" + s.Port))
 		if err != nil {
 			s.log.Error("error resolving UDP address on ", s.Port)
 			s.log.Error(err.Error())
