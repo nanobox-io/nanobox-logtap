@@ -34,7 +34,7 @@ func NewHistoricalDrain(port string, file string, max int) *HistoricalDrain {
 // default size is 100
 func (h *HistoricalDrain) Start() {
 	go func() {
-		http.HandleFunc("/", h.handler)
+		http.HandleFunc("/logtap/", h.handler)
 		err := http.ListenAndServe(":"+h.port, nil)
 		if err != nil {
 			h.log.Error(err.Error())
