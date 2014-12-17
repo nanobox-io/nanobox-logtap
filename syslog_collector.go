@@ -4,6 +4,7 @@ import (
 	"github.com/jeromer/syslogparser/rfc3164"
 	"github.com/jeromer/syslogparser/rfc5424"
 	"github.com/nanobox-core/hatchet"
+	"strconv"
 	"net"
 	"time"
 )
