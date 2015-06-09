@@ -50,13 +50,15 @@ func (h *HistoricalDrain) Start() {
 	}()
 }
 
+// Handle deploys that come into this drain
+// deploy logs should stay relatively short and should be cleared out easily
 func (h *HistoricalDrain) handlerDeploy(w http.ResponseWriter, r *http.Request) {
 	for _, msg := range h.deploy {
 		fmt.Fprintf(w, "%s", msg)
 	}
 }
 
-// handler handles any web request with any path and returns logs
+// handlerSystem handles any web request with any path and returns logs
 // this makes it so a client that talks to pagodabox's logvac
 // can communicate with this system
 func (h *HistoricalDrain) handlerSystem(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +112,8 @@ func (h *HistoricalDrain) Write(msg Message) {
   }
 }
 
+// Write deploy logs to the deploy array.
+// much quicker and better at handling deploy logs
 func (h *HistoricalDrain) WriteDeploy(msg Message) {
 	h.deploy = append(h.deploy, (msg.Time.String()+" - "+msg.Content))
 }
