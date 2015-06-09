@@ -3,7 +3,7 @@ package logtap
 // Overview
 
 import (
-	"github.com/nanobox-core/hatchet"
+	"github.com/pagodabox/golang-hatchet"
 	"reflect"
 	"time"
 )
@@ -19,6 +19,7 @@ type Drain interface {
 }
 
 type Message struct {
+	Type     string
 	Time     time.Time
 	Priority int
 	Content  string
@@ -73,12 +74,12 @@ func (l *Logtap) Start() {
 	go func() {
 		for {
 			cases := make([]reflect.SelectCase, len(l.Collectors))
+			index := 0
 			for _, col := range l.Collectors {
-				cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(col.CollectChan())})
+				cases[index] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(col.CollectChan())}
+				index++
 			}
-			// when you append to a nil value [] the first element is the nil value object
-			// so its best to remove it
-			cases = cases[1:]
+
 			_, value, ok := reflect.Select(cases)
 			// ok will be true if the channel has not been closed.
 			if ok {

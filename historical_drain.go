@@ -3,7 +3,7 @@ package logtap
 import (
 	"fmt"
 	"github.com/boltdb/bolt"
-	"github.com/nanobox-core/hatchet"
+	"github.com/pagodabox/golang-hatchet"
 	"net/http"
 	"strconv"
 )
@@ -14,6 +14,7 @@ type HistoricalDrain struct {
 	max  int
 	log  hatchet.Logger
 	db   *bolt.DB
+	deploy []string
 }
 
 // NewHistoricalDrain returns a new instance of a HistoricalDrain
@@ -29,23 +30,36 @@ func NewHistoricalDrain(port string, file string, max int) *HistoricalDrain {
 	}
 }
 
+// allow us to clear history of the deploy logs
+func (h *HistoricalDrain) ClearDeploy() {
+	h.deploy = []string{}
+}
+
 // Start starts the http listener.
 // The listener on every request returns a json hash of logs of some arbitrary size
 // default size is 100
 func (h *HistoricalDrain) Start() {
 	go func() {
-		http.HandleFunc("/logtap/", h.handler)
-		err := http.ListenAndServe(":"+h.port, nil)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/logtap/system", h.handlerSystem)
+		mux.HandleFunc("/logtap/deploy", h.handlerDeploy)
+		err := http.ListenAndServe(":"+h.port, mux)
 		if err != nil {
 			h.log.Error("[LOGTAP]"+err.Error())
 		}
 	}()
 }
 
+func (h *HistoricalDrain) handlerDeploy(w http.ResponseWriter, r *http.Request) {
+	for _, msg := range h.deploy {
+		fmt.Fprintf(w, "%s", msg)
+	}
+}
+
 // handler handles any web request with any path and returns logs
 // this makes it so a client that talks to pagodabox's logvac
 // can communicate with this system
-func (h *HistoricalDrain) handler(w http.ResponseWriter, r *http.Request) {
+func (h *HistoricalDrain) handlerSystem(w http.ResponseWriter, r *http.Request) {
 	var limit int64
 	if i, err := strconv.ParseInt(r.FormValue("limit"), 10, 64); err == nil {
 		limit = i
@@ -85,9 +99,24 @@ func (h *HistoricalDrain) SetLogger(l hatchet.Logger) {
 	h.log = l
 }
 
-// write drops data into a capped collection of logs
-// if we hit the limit the last log item will be removed from the beginning
+// Write is used to implement the interface and do 
+// type switching
 func (h *HistoricalDrain) Write(msg Message) {
+  switch msg.Type {
+  case "deploy":
+  	h.WriteDeploy(msg)
+  default :
+    h.WriteSystem(msg)
+  }
+}
+
+func (h *HistoricalDrain) WriteDeploy(msg Message) {
+	h.deploy = append(h.deploy, (msg.Time.String()+" - "+msg.Content))
+}
+
+// WriteSyslog drops data into a capped collection of logs
+// if we hit the limit the last log item will be removed from the beginning
+func (h *HistoricalDrain) WriteSystem(msg Message) {
 	h.log.Debug("[LOGTAP][Historical][write] message: (%s)%s", msg.Time.String(), msg.Content)
 	h.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("log"))

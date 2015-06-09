@@ -1,7 +1,7 @@
 package logtap
 
 import "fmt"
-import "github.com/nanobox-core/hatchet"
+import "github.com/pagodabox/golang-hatchet"
 
 type ConsoleDrain struct {
 	log hatchet.Logger
@@ -21,5 +21,5 @@ func (c *ConsoleDrain) SetLogger(l hatchet.Logger) {
 // Write formats the message given and prints it to stdout
 func (c *ConsoleDrain) Write(msg Message) {
 	c.log.Debug("[LOGTAP][concole][write] message:" + msg.Content)
-	fmt.Printf("[%s] <%d> %s", msg.Time, msg.Priority, msg.Content)
+	fmt.Printf("[%s][%s] <%d> %s", msg.Type, msg.Time, msg.Priority, msg.Content)
 }

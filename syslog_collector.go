@@ -3,7 +3,7 @@ package logtap
 import (
 	"github.com/jeromer/syslogparser/rfc3164"
 	"github.com/jeromer/syslogparser/rfc5424"
-	"github.com/nanobox-core/hatchet"
+	"github.com/pagodabox/golang-hatchet"
 	"strconv"
 	"net"
 	"time"
@@ -82,6 +82,7 @@ func (s *SyslogCollector) Start() {
 // it will drop the whole message into the content and make up a timestamp
 // and a priority
 func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
+	msg.Type = "syslog"
 	p := rfc3164.NewParser(b)
 	err := p.Parse()
 	if err == nil {
