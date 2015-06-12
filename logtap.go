@@ -92,6 +92,16 @@ func (l *Logtap) Start() {
 	}()
 }
 
+func (l *Logtap) Publish(category, content string) {
+	m := Message{
+		Type:     category,
+		Time:     time.Now(),
+		Priority: 1,
+		Content:  content,
+	}
+	l.writeMessage(m)
+}
+
 // writeMessage broadcasts to all drains in seperate go routines
 func (l *Logtap) writeMessage(msg Message) {
 	for _, drain := range l.Drains {
