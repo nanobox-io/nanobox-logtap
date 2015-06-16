@@ -54,7 +54,7 @@ func (h *HistoricalDrain) Start() {
 // deploy logs should stay relatively short and should be cleared out easily
 func (h *HistoricalDrain) handlerDeploy(w http.ResponseWriter, r *http.Request) {
 	for _, msg := range h.deploy {
-		fmt.Fprintf(w, "%s", msg)
+		fmt.Fprintf(w, "%s\n", msg)
 	}
 }
 
