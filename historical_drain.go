@@ -74,7 +74,7 @@ func (h *HistoricalDrain) handlerAdmin(w http.ResponseWriter, r *http.Request) {
 		// Create a new bucket.
 		b := tx.Bucket([]byte("admin"))
 		if b == nil {
-			return
+			return nil
 		}
 
 		c := b.Cursor()
@@ -114,7 +114,7 @@ func (h *HistoricalDrain) handlerSystem(w http.ResponseWriter, r *http.Request) 
 		// Create a new bucket.
 		b := tx.Bucket([]byte("system"))
 		if b == nil {
-			return
+			return nil
 		}
 		c := b.Cursor()
 
