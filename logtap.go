@@ -8,6 +8,17 @@ import (
 	"time"
 )
 
+const (
+  EMERGENCY = iota
+  ALERT
+  CRITICAL
+  ERROR
+  WARNING
+  NOTICE
+  INFORMATIONAL
+  DEBUG
+)
+
 type Collector interface {
 	CollectChan() chan Message
 	SetLogger(hatchet.Logger)
@@ -92,11 +103,11 @@ func (l *Logtap) Start() {
 	}()
 }
 
-func (l *Logtap) Publish(category, content string) {
+func (l *Logtap) Publish(category string, priority int, content string) {
 	m := Message{
 		Type:     category,
 		Time:     time.Now(),
-		Priority: 1,
+		Priority: priority,
 		Content:  content,
 	}
 	l.writeMessage(m)

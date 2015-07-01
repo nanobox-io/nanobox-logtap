@@ -88,7 +88,7 @@ func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
 	if err == nil {
 		parsedData := p.Dump()
 		msg.Time = parsedData["timestamp"].(time.Time)
-		msg.Priority = parsedData["priority"].(int)
+		msg.Priority = parsedData["priority"].(int) % 8
 		msg.Content = parsedData["content"].(string)
 	} else {
 		p := rfc5424.NewParser(b)
@@ -96,7 +96,7 @@ func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
 		if err == nil {
 			parsedData := p.Dump()
 			msg.Time = parsedData["timestamp"].(time.Time)
-			msg.Priority = parsedData["priority"].(int)
+			msg.Priority = parsedData["priority"].(int) % 8
 			msg.Content = parsedData["content"].(string)
 		} else {
 			s.log.Error("[LOGTAP]Unable to parse data: " + string(b))

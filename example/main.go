@@ -14,16 +14,16 @@ func main() {
 	ltap.AddCollector("syslog", sysc)
 	sysc.Start()
 
+	post := logtap.NewHttpCollector("6361")
+	ltap.AddCollector("post", post)
+	post.Start()
+
 	conc := logtap.NewConsoleDrain()
 	ltap.AddDrain("concole", conc)
 
 	hist := logtap.NewHistoricalDrain("8080", "./bolt.db", 1000)
 	hist.Start()
 	ltap.AddDrain("history", hist)
-
-	post := logtap.NewHttpCollector("6361")
-	ltap.AddCollector("post", post)
-	post.Start()
 
 	// pub := logtap.newPublishDrain(publisher)
 	// l.AddDrain("mist", pub)

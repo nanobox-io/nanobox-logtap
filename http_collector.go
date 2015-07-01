@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 	"io/ioutil"
+	"strconv"
 )
 
 type HttpCollector struct {
@@ -47,7 +48,6 @@ func (h *HttpCollector) Start() {
 	}()
 }
 
-
 // implement the http.Handler interface so i can just serve all request to this
 // port to this single Handler an not worry about pathing at all
 func (h *HttpCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -55,10 +55,14 @@ func (h *HttpCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	priority, err := strconv.Atoi(r.FormValue("priority"))
+	if err != nil {
+		priority = ERROR
+	}
 	msg := Message{
 		Type: "deploy",
 		Time: time.Now(),
-		Priority: 1,
+		Priority: priority % 8,
 		Content: string(body),
 	}
 	h.wChan <- msg
