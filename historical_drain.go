@@ -6,6 +6,7 @@ import (
 	"github.com/pagodabox/golang-hatchet"
 	"net/http"
 	"strconv"
+	"encoding/json"
 )
 
 // HistoricalDrain matches the drain interface
@@ -14,7 +15,7 @@ type HistoricalDrain struct {
 	max  int
 	log  hatchet.Logger
 	db   *bolt.DB
-	deploy []string
+	deploy []Message
 }
 
 // NewHistoricalDrain returns a new instance of a HistoricalDrain
@@ -32,7 +33,7 @@ func NewHistoricalDrain(port string, file string, max int) *HistoricalDrain {
 
 // allow us to clear history of the deploy logs
 func (h *HistoricalDrain) ClearDeploy() {
-	h.deploy = []string{}
+	h.deploy = []Message{}
 }
 
 // Start starts the http listener.
@@ -41,9 +42,8 @@ func (h *HistoricalDrain) ClearDeploy() {
 func (h *HistoricalDrain) Start() {
 	go func() {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/logtap/system", h.handlerSystem)
-		mux.HandleFunc("/logtap/admin", h.handlerAdmin)
-		mux.HandleFunc("/logtap/deploy", h.handlerDeploy)
+		mux.HandleFunc("/app", h.handlerApp)
+		mux.HandleFunc("/deploy", h.handlerDeploy)
 		err := http.ListenAndServe(":"+h.port, mux)
 		if err != nil {
 			h.log.Error("[LOGTAP]"+err.Error())
@@ -54,15 +54,18 @@ func (h *HistoricalDrain) Start() {
 // Handle deploys that come into this drain
 // deploy logs should stay relatively short and should be cleared out easily
 func (h *HistoricalDrain) handlerDeploy(w http.ResponseWriter, r *http.Request) {
+	level := priorityLevel(r)
 	for _, msg := range h.deploy {
-		fmt.Fprintf(w, "%s\n", msg)
+		if msg.Priority <= level {
+			fmt.Fprintf(w, "%s\n", msg)
+		}
 	}
 }
 
-// handlerSystem handles any web request with any path and returns logs
+// handlerApp handles any web request with any path and returns logs
 // this makes it so a client that talks to pagodabox's logvac
 // can communicate with this system
-func (h *HistoricalDrain) handlerAdmin(w http.ResponseWriter, r *http.Request) {
+func (h *HistoricalDrain) handlerApp(w http.ResponseWriter, r *http.Request) {
 	var limit int64
 	if i, err := strconv.ParseInt(r.FormValue("limit"), 10, 64); err == nil {
 		limit = i
@@ -70,49 +73,12 @@ func (h *HistoricalDrain) handlerAdmin(w http.ResponseWriter, r *http.Request) {
 		limit = 10000
 	}
 	h.log.Debug("[LOGTAP][handler] limit: %d", limit)
+
+	level := priorityLevel(r)
+	
 	h.db.View(func(tx *bolt.Tx) error {
 		// Create a new bucket.
-		b := tx.Bucket([]byte("admin"))
-		if b == nil {
-			return nil
-		}
-
-		c := b.Cursor()
-
-		// move the curser along so we can start dropping logs
-		// in the right order at the right place
-		if int64(b.Stats().KeyN) > limit {
-			c.First()
-			move_forward := int64(b.Stats().KeyN) - limit
-			for i := int64(1); i < move_forward; i++ {
-				c.Next()
-			}
-		} else {
-			c.First()
-		}
-
-		for k, v := c.Next(); k != nil; k, v = c.Next() {
-			fmt.Fprintf(w, "%s - %s", k, v)
-		}
-
-		return nil
-	})
-
-}
-// handlerSystem handles any web request with any path and returns logs
-// this makes it so a client that talks to pagodabox's logvac
-// can communicate with this system
-func (h *HistoricalDrain) handlerSystem(w http.ResponseWriter, r *http.Request) {
-	var limit int64
-	if i, err := strconv.ParseInt(r.FormValue("limit"), 10, 64); err == nil {
-		limit = i
-	} else {
-		limit = 10000
-	}
-	h.log.Debug("[LOGTAP][handler] limit: %d", limit)
-	h.db.View(func(tx *bolt.Tx) error {
-		// Create a new bucket.
-		b := tx.Bucket([]byte("system"))
+		b := tx.Bucket([]byte("app"))
 		if b == nil {
 			return nil
 		}
@@ -131,7 +97,13 @@ func (h *HistoricalDrain) handlerSystem(w http.ResponseWriter, r *http.Request) 
 		}
 
 		for k, v := c.Next(); k != nil; k, v = c.Next() {
-			fmt.Fprintf(w, "%s - %s", k, v)
+			msg := Message{}
+			err := json.Unmarshal(v, &msg)
+			if err == nil {
+				if msg.Priority <= level {
+					fmt.Fprintf(w, "%s - %s", k, msg.Content)
+				}
+			}
 		}
 
 		return nil
@@ -151,30 +123,32 @@ func (h *HistoricalDrain) Write(msg Message) {
   switch msg.Type {
   case "deploy":
   	h.WriteDeploy(msg)
-  case "admin":
-  	h.WriteAdmin(msg)
   default :
-    h.WriteSystem(msg)
+    h.WriteApp(msg)
   }
 }
 
 // Write deploy logs to the deploy array.
 // much quicker and better at handling deploy logs
 func (h *HistoricalDrain) WriteDeploy(msg Message) {
-	h.deploy = append(h.deploy, (msg.Time.String()+" - "+msg.Content))
+	h.deploy = append(h.deploy, msg)
 }
 
 // WriteSyslog drops data into a capped collection of logs
 // if we hit the limit the last log item will be removed from the beginning
-func (h *HistoricalDrain) WriteAdmin(msg Message) {
+func (h *HistoricalDrain) WriteApp(msg Message) {
 	h.log.Debug("[LOGTAP][Historical][write] message: (%s)%s", msg.Time.String(), msg.Content)
 	h.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("admin"))
+		bucket, err := tx.CreateBucketIfNotExists([]byte("app"))
 		if err != nil {
 			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
 			return err
 		}
-		err = bucket.Put([]byte(msg.Time.String()), []byte(msg.Content))
+		bytes, err :=json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		err = bucket.Put([]byte(msg.Time.String()), bytes)
 		if err != nil {
 			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
 			return err
@@ -193,32 +167,35 @@ func (h *HistoricalDrain) WriteAdmin(msg Message) {
 	})
 
 }
-// WriteSyslog drops data into a capped collection of logs
-// if we hit the limit the last log item will be removed from the beginning
-func (h *HistoricalDrain) WriteSystem(msg Message) {
-	h.log.Debug("[LOGTAP][Historical][write] message: (%s)%s", msg.Time.String(), msg.Content)
-	h.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("system"))
-		if err != nil {
-			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
-			return err
-		}
-		err = bucket.Put([]byte(msg.Time.String()), []byte(msg.Content))
-		if err != nil {
-			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
-			return err
-		}
 
-		if bucket.Stats().KeyN > h.max {
-			delete_count := bucket.Stats().KeyN - h.max
-			c := bucket.Cursor()
-			for i := 0; i < delete_count; i++ {
-				c.First()
-				c.Delete()
-			}
-		}
 
-		return nil
-	})
-
+func priorityLevel(r *http.Request) int {
+	switch r.FormValue("level") {
+	case "emergency":
+		return EMERGENCY
+	case "alert":
+		return ALERT
+	case "critical":
+		return CRITICAL
+	case "error":
+		return ERROR
+	case "warning":
+		return WARNING
+	case "notice":
+		return NOTICE
+	case "informational":
+		return INFORMATIONAL
+	case "debug":
+		return DEBUG
+	}
+	return INFORMATIONAL
 }
+
+
+
+
+
+
+
+
+
