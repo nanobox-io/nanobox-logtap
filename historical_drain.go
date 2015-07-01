@@ -73,6 +73,10 @@ func (h *HistoricalDrain) handlerAdmin(w http.ResponseWriter, r *http.Request) {
 	h.db.View(func(tx *bolt.Tx) error {
 		// Create a new bucket.
 		b := tx.Bucket([]byte("admin"))
+		if b == nil {
+			return
+		}
+
 		c := b.Cursor()
 
 		// move the curser along so we can start dropping logs
@@ -109,6 +113,9 @@ func (h *HistoricalDrain) handlerSystem(w http.ResponseWriter, r *http.Request) 
 	h.db.View(func(tx *bolt.Tx) error {
 		// Create a new bucket.
 		b := tx.Bucket([]byte("system"))
+		if b == nil {
+			return
+		}
 		c := b.Cursor()
 
 		// move the curser along so we can start dropping logs
