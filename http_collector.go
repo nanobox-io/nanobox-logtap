@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 	"io/ioutil"
-	"strconv"
 )
 
 type HttpCollector struct {
@@ -55,10 +54,7 @@ func (h *HttpCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	priority, err := strconv.Atoi(r.FormValue("priority"))
-	if err != nil {
-		priority = ERROR
-	}
+	priority := priorityInt(r.Header.Get("Priority"))
 	msg := Message{
 		Type: "deploy",
 		Time: time.Now(),

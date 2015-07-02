@@ -141,3 +141,25 @@ func priorityString(priority int) string {
 	}
 	return "debug"
 }
+
+func priorityInt(priority string) int {
+	switch priority {
+	case "emergency":
+		return EMERGENCY
+	case "alert":
+		return ALERT
+	case "critical":
+		return CRITICAL
+	case "error":
+		return ERROR
+	case "warning":
+		return WARNING
+	case "notice":
+		return NOTICE
+	case "informational":
+		return INFORMATIONAL
+	case "debug":
+		return DEBUG
+	}
+	return DEBUG
+}
