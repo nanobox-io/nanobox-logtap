@@ -57,7 +57,7 @@ func (h *HistoricalDrain) handlerDeploy(w http.ResponseWriter, r *http.Request) 
 	level := priorityLevel(r)
 	for _, msg := range h.deploy {
 		if msg.Priority <= level {
-			fmt.Fprintf(w, "%s\n", msg)
+			fmt.Fprintf(w, "%+v\n", msg)
 		}
 	}
 }
@@ -101,7 +101,7 @@ func (h *HistoricalDrain) handlerApp(w http.ResponseWriter, r *http.Request) {
 			err := json.Unmarshal(v, &msg)
 			if err == nil {
 				if msg.Priority <= level {
-					fmt.Fprintf(w, "%s - %s", k, msg.Content)
+					fmt.Fprintf(w, "%+v\n", msg)
 				}
 			}
 		}
