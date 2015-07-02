@@ -119,3 +119,25 @@ func (l *Logtap) writeMessage(msg Message) {
 		go drain.Write(msg)
 	}
 }
+
+func priorityString(priority int) string {
+	switch priority {
+	case EMERGENCY:
+		return "emergency"
+	case ALERT:
+		return "alert"
+	case CRITICAL:
+		return "critical"
+	case ERROR:
+		return "error"
+	case WARNING:
+		return "warning"
+	case NOTICE:
+		return "notice"
+	case INFORMATIONAL:
+		return "informational"
+	case DEBUG:
+		return "debug"
+	}
+	return "debug"
+}
