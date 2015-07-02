@@ -35,5 +35,5 @@ func (p *PublishDrain) Write(msg Message) {
 	tags := []string{"log", msg.Type}
 	severities :=[]string{"emergency","alert","critical","error","warning","notice","informational","debug"}
 	tags = append(tags, severities[:(msg.Priority % 8)]...)
-	p.publisher.Publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":\"%q\""}", msg.Time, msg.Content))
+	p.publisher.Publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":\"%q\"}", msg.Time, msg.Content))
 }
