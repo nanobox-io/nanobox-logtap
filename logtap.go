@@ -15,7 +15,7 @@ const (
   ERROR
   WARNING
   NOTICE
-  INFORMATIONAL
+  INFO
   DEBUG
 )
 
@@ -134,8 +134,8 @@ func priorityString(priority int) string {
 		return "warning"
 	case NOTICE:
 		return "notice"
-	case INFORMATIONAL:
-		return "informational"
+	case INFO:
+		return "info"
 	case DEBUG:
 		return "debug"
 	}
@@ -156,8 +156,8 @@ func priorityInt(priority string) int {
 		return WARNING
 	case "notice":
 		return NOTICE
-	case "informational":
-		return INFORMATIONAL
+	case "info":
+		return INFO
 	case "debug":
 		return DEBUG
 	}

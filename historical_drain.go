@@ -183,12 +183,12 @@ func priorityLevel(r *http.Request) int {
 		return WARNING
 	case "notice":
 		return NOTICE
-	case "informational":
-		return INFORMATIONAL
+	case "info":
+		return INFO
 	case "debug":
 		return DEBUG
 	}
-	return INFORMATIONAL
+	return INFO
 }
 
 
