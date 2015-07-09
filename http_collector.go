@@ -54,7 +54,7 @@ func (h *HttpCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	priority := priorityInt(r.Header.Get("Priority"))
+	priority := priorityInt(r.Header.Get("X-Log-Level"))
 	msg := Message{
 		Type: "deploy",
 		Time: time.Now(),
