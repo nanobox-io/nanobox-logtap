@@ -119,6 +119,8 @@ func (l *Logtap) writeMessage(msg Message) {
 
 func priorityString(priority int) string {
 	switch priority {
+	default:
+		return "info"
 	case FATAL:
 		return "fatal"
 	case ERROR:
@@ -130,11 +132,12 @@ func priorityString(priority int) string {
 	case DEBUG:
 		return "debug"
 	}
-	return "debug"
 }
 
 func priorityInt(priority string) int {
 	switch priority {
+	default:
+		return INFO
 	case "fatal":
 		return FATAL
 	case "error":
@@ -146,5 +149,4 @@ func priorityInt(priority string) int {
 	case "debug":
 		return DEBUG
 	}
-	return DEBUG
 }
