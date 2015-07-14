@@ -9,14 +9,14 @@ import (
 )
 
 const (
-  EMERGENCY = iota
-  ALERT
-  CRITICAL
-  ERROR
-  WARNING
-  NOTICE
-  INFO
-  DEBUG
+	EMERGENCY = iota
+	ALERT
+	CRITICAL
+	ERROR
+	WARNING
+	NOTICE
+	INFO
+	DEBUG
 )
 
 type Collector interface {

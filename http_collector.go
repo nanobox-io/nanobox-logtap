@@ -2,9 +2,9 @@ package logtap
 
 import (
 	"github.com/pagodabox/golang-hatchet"
+	"io/ioutil"
 	"net/http"
 	"time"
-	"io/ioutil"
 )
 
 type HttpCollector struct {
@@ -41,7 +41,7 @@ func (h *HttpCollector) Start() {
 	go func() {
 		err := http.ListenAndServe(":"+h.port, h)
 		if err != nil {
-			h.log.Error("[LOGTAP]"+err.Error())
+			h.log.Error("[LOGTAP]" + err.Error())
 		}
 
 	}()
@@ -56,10 +56,10 @@ func (h *HttpCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	priority := priorityInt(r.Header.Get("X-Log-Level"))
 	msg := Message{
-		Type: "deploy",
-		Time: time.Now(),
+		Type:     "deploy",
+		Time:     time.Now(),
 		Priority: priority % 8,
-		Content: string(body),
+		Content:  string(body),
 	}
 	h.wChan <- msg
 }

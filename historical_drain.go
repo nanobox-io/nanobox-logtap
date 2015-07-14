@@ -1,20 +1,20 @@
 package logtap
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/pagodabox/golang-hatchet"
 	"net/http"
 	"strconv"
-	"encoding/json"
 )
 
 // HistoricalDrain matches the drain interface
 type HistoricalDrain struct {
-	port string
-	max  int
-	log  hatchet.Logger
-	db   *bolt.DB
+	port   string
+	max    int
+	log    hatchet.Logger
+	db     *bolt.DB
 	deploy []Message
 }
 
@@ -46,7 +46,7 @@ func (h *HistoricalDrain) Start() {
 		mux.HandleFunc("/deploy", h.handlerDeploy)
 		err := http.ListenAndServe(":"+h.port, mux)
 		if err != nil {
-			h.log.Error("[LOGTAP]"+err.Error())
+			h.log.Error("[LOGTAP]" + err.Error())
 		}
 	}()
 }
@@ -75,7 +75,7 @@ func (h *HistoricalDrain) handlerApp(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug("[LOGTAP][handler] limit: %d", limit)
 
 	level := priorityLevel(r)
-	
+
 	h.db.View(func(tx *bolt.Tx) error {
 		// Create a new bucket.
 		b := tx.Bucket([]byte("app"))
@@ -117,15 +117,15 @@ func (h *HistoricalDrain) SetLogger(l hatchet.Logger) {
 	h.log = l
 }
 
-// Write is used to implement the interface and do 
+// Write is used to implement the interface and do
 // type switching
 func (h *HistoricalDrain) Write(msg Message) {
-  switch msg.Type {
-  case "deploy":
-  	h.WriteDeploy(msg)
-  default :
-    h.WriteApp(msg)
-  }
+	switch msg.Type {
+	case "deploy":
+		h.WriteDeploy(msg)
+	default:
+		h.WriteApp(msg)
+	}
 }
 
 // Write deploy logs to the deploy array.
@@ -144,7 +144,7 @@ func (h *HistoricalDrain) WriteApp(msg Message) {
 			h.log.Error("[LOGTAP][Historical][write]" + err.Error())
 			return err
 		}
-		bytes, err :=json.Marshal(msg)
+		bytes, err := json.Marshal(msg)
 		if err != nil {
 			return err
 		}
@@ -168,7 +168,6 @@ func (h *HistoricalDrain) WriteApp(msg Message) {
 
 }
 
-
 func priorityLevel(r *http.Request) int {
 	switch r.FormValue("level") {
 	case "emergency":
@@ -190,12 +189,3 @@ func priorityLevel(r *http.Request) int {
 	}
 	return INFO
 }
-
-
-
-
-
-
-
-
-
