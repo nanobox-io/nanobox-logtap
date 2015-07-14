@@ -9,12 +9,9 @@ import (
 )
 
 const (
-	EMERGENCY = iota
-	ALERT
-	CRITICAL
+	FATAL = iota
 	ERROR
-	WARNING
-	NOTICE
+	WARN
 	INFO
 	DEBUG
 )
@@ -122,18 +119,12 @@ func (l *Logtap) writeMessage(msg Message) {
 
 func priorityString(priority int) string {
 	switch priority {
-	case EMERGENCY:
-		return "emergency"
-	case ALERT:
-		return "alert"
-	case CRITICAL:
-		return "critical"
+	case FATAL:
+		return "fatal"
 	case ERROR:
 		return "error"
-	case WARNING:
-		return "warning"
-	case NOTICE:
-		return "notice"
+	case WARN:
+		return "warn"
 	case INFO:
 		return "info"
 	case DEBUG:
@@ -144,21 +135,15 @@ func priorityString(priority int) string {
 
 func priorityInt(priority string) int {
 	switch priority {
-	case "emergency":
-		return EMERGENCY
-	case "alert":
-		return ALERT
-	case "critical":
-		return CRITICAL
+	case "fatal":
+		return FATAL
 	case "error":
 		return ERROR
-	case "warning":
-		return WARNING
-	case "notice":
-		return NOTICE
+	case "warn":
+		return WARN
 	case "info":
 		return INFO
-	case "debug":
+	case "debug"
 		return DEBUG
 	}
 	return DEBUG
