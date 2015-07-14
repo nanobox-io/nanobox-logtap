@@ -143,7 +143,7 @@ func priorityInt(priority string) int {
 		return WARN
 	case "info":
 		return INFO
-	case "debug"
+	case "debug":
 		return DEBUG
 	}
 	return DEBUG

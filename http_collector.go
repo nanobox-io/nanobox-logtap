@@ -57,7 +57,7 @@ func (h *HttpCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	msg := Message{
 		Type:     "deploy",
 		Time:     time.Now(),
-		Priority: r.Header.Get("X-Log-Level"),
+		Priority: priorityInt(r.Header.Get("X-Log-Level")),
 		Content:  string(body),
 	}
 	h.wChan <- msg

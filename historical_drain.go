@@ -54,7 +54,7 @@ func (h *HistoricalDrain) Start() {
 // Handle deploys that come into this drain
 // deploy logs should stay relatively short and should be cleared out easily
 func (h *HistoricalDrain) handlerDeploy(w http.ResponseWriter, r *http.Request) {
-	level := priorityLevel(r)
+	level := priorityInt(r.FormValue("level"))
 	for _, msg := range h.deploy {
 		if msg.Priority <= level {
 			fmt.Fprintf(w, "[%s] [%s] %s\n", msg.Time.String(), priorityString(msg.Priority), msg.Content)
@@ -74,7 +74,7 @@ func (h *HistoricalDrain) handlerApp(w http.ResponseWriter, r *http.Request) {
 	}
 	h.log.Debug("[LOGTAP][handler] limit: %d", limit)
 
-	level := priorityLevel(r)
+	level := priorityInt(r.FormValue("level"))
 
 	h.db.View(func(tx *bolt.Tx) error {
 		// Create a new bucket.
@@ -166,26 +166,4 @@ func (h *HistoricalDrain) WriteApp(msg Message) {
 		return nil
 	})
 
-}
-
-func priorityLevel(r *http.Request) int {
-	switch r.FormValue("level") {
-	case "emergency":
-		return EMERGENCY
-	case "alert":
-		return ALERT
-	case "critical":
-		return CRITICAL
-	case "error":
-		return ERROR
-	case "warning":
-		return WARNING
-	case "notice":
-		return NOTICE
-	case "info":
-		return INFO
-	case "debug":
-		return DEBUG
-	}
-	return INFO
 }

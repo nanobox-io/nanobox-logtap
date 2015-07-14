@@ -32,6 +32,6 @@ func (p *PublishDrain) SetLogger(l hatchet.Logger) {
 // in a format the publisher can use
 func (p *PublishDrain) Write(msg Message) {
 	p.log.Debug("[LOGTAP][publish][write]:[%s] %s", msg.Time, msg.Content)
-	tags := []string{"log", msg.Type, msg.Priority}
+	tags := []string{"log", msg.Type, priorityString(msg.Priority)}
 	p.publisher.Publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":%q}", msg.Time, msg.Content))
 }
