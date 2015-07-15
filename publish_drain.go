@@ -1,7 +1,10 @@
 package logtap
 
-import "fmt"
-import "github.com/pagodabox/golang-hatchet"
+import (
+	"fmt"
+
+	"github.com/pagodabox/golang-hatchet"
+)
 
 type Publisher interface {
 	Publish(tags []string, data string)
