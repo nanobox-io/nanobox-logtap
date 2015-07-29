@@ -88,7 +88,7 @@ func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
 	if err == nil {
 		parsedData := p.Dump()
 		msg.Time = parsedData["timestamp"].(time.Time)
-		msg.Priority = parsedData["priority"].(int) % 8
+		msg.Priority = adjustInt(parsedData["priority"].(int) % 8)
 		msg.Content = parsedData["content"].(string)
 	} else {
 		p := rfc5424.NewParser(b)
@@ -96,7 +96,7 @@ func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
 		if err == nil {
 			parsedData := p.Dump()
 			msg.Time = parsedData["timestamp"].(time.Time)
-			msg.Priority = parsedData["priority"].(int) % 8
+			msg.Priority = adjustInt(parsedData["priority"].(int) % 8)
 			msg.Content = parsedData["content"].(string)
 		} else {
 			s.log.Error("[LOGTAP]Unable to parse data: " + string(b))
@@ -106,4 +106,16 @@ func (s *SyslogCollector) parseMessage(b []byte) (msg Message) {
 		}
 	}
 	return
+}
+
+// I need to adjust the possible prioritys from rfc3164 and rfc5424
+// to the 5 priority options.
+func adjustInt(in int) int {
+	if in < 3 {
+		return 0
+	}
+	if in < 5 {
+		return in - 2
+	}
+	return in - 3
 }
