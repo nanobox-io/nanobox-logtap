@@ -36,7 +36,7 @@ func (p *PublishDrain) SetLogger(l hatchet.Logger) {
 func (p *PublishDrain) Write(msg Message) {
 	p.log.Debug("[LOGTAP][publish][write]:[%s] %s", msg.Time, msg.Content)
 	tags := []string{"log", msg.Type}
-	severities := []string{"emergency", "alert", "critical", "error", "warning", "notice", "info", "debug"}
+	severities := []string{"fatal", "error", "warn", "info", "debug"}
 	tags = append(tags, severities[(msg.Priority%5):]...)	
 	p.publisher.Publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":%q}", msg.Time, msg.Content))
 }
