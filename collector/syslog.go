@@ -1,27 +1,33 @@
 package collector
 
 import (
+	"bufio"
 	"github.com/jeromer/syslogparser/rfc3164"
 	"github.com/jeromer/syslogparser/rfc5424"
-	"github.com/pagodabox/golang-hatchet"
+	"github.com/pagodabox/nanobox-logtap"
+	"io"
 	"net"
-	"strconv"
+	"strings"
 	"time"
 )
 
 // Start begins listening to the syslog port transfers all
 // syslog messages on the wChan
-func SyslogUDPStart(kind, address string, l *Logtap) error {
-	serverSocket, err := net.Listen("udp", address)
+func SyslogUDPStart(kind, address string, l *logtap.Logtap) error {
+	parsedAddress, err := net.ResolveUDPAddr("udp", address)
+	if err != nil {
+		return err
+	}
+	socket, err := net.ListenUDP("udp", parsedAddress)
 	if err != nil {
 		return err
 	}
 
-	defer serverSocket.Close()
+	defer socket.Close()
 
 	var buf []byte = make([]byte, 1024)
 	for {
-		n, remote, err := serverSocket.ReadFromUDP(buf)
+		n, remote, err := socket.ReadFromUDP(buf)
 		if err != nil {
 			return err
 		}
@@ -35,7 +41,7 @@ func SyslogUDPStart(kind, address string, l *Logtap) error {
 	}
 }
 
-func SyslogTCPStart(kind, address string, l *Logtap) error {
+func SyslogTCPStart(kind, address string, l *logtap.Logtap) error {
 	serverSocket, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
@@ -49,12 +55,12 @@ func SyslogTCPStart(kind, address string, l *Logtap) error {
 		}
 
 		// handle each connection individually (non-blocking)
-		go handleConnection(conn, l)
+		go handleConnection(conn, kind, l)
 	}
 	return nil
 }
 
-func handleConnection(conn net.Conn, l *Logtap) {
+func handleConnection(conn net.Conn, kind string, l *logtap.Logtap) {
 	r := bufio.NewReader(conn)
 
 	//
@@ -78,7 +84,7 @@ func handleConnection(conn net.Conn, l *Logtap) {
 // if the msg is not parsable or a standard formatted syslog message
 // it will drop the whole message into the content and make up a timestamp
 // and a priority
-func parseMessage(b []byte) (msg Message) {
+func parseMessage(b []byte) (msg logtap.Message) {
 	p := rfc3164.NewParser(b)
 	err := p.Parse()
 	if err == nil {
@@ -97,7 +103,6 @@ func parseMessage(b []byte) (msg Message) {
 			msg.Priority = adjustInt(parsedData["priority"].(int) % 8)
 			msg.Content = parsedData["tag"].(string) + " " + parsedData["content"].(string)
 		} else {
-			s.log.Error("[LOGTAP]Unable to parse data: " + string(b))
 			msg.Time = time.Now()
 			msg.Priority = 1
 			msg.Content = string(b)

@@ -1,34 +1,40 @@
 package archive
 
 import (
-	"binary"
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"github.com/boltdb/bolt"
 	"github.com/pagodabox/golang-hatchet"
+	"github.com/pagodabox/nanobox-logtap"
 )
 
 type (
 	BoltArchive struct {
 		db            *bolt.DB
-		maxBucketSize uint32
+		maxBucketSize uint64
 	}
 )
 
-func (archive *BoltArchive) Slice(name string, offset, limit uint32, level int) ([]logtap.Messages, uint32, error) {
-	var messages []logtap.Messages
+func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) ([]logtap.Message, uint64, error) {
+	var messages []logtap.Message
 	var nextIdx uint64
 	err := archive.db.View(func(tx *bolt.Tx) error {
-		messages = make([]logtap.Messages, 0)
+		messages = make([]logtap.Message, 0)
 		bucket := tx.Bucket([]byte(name))
 		c := bucket.Cursor()
 		k, _ := c.First()
 		if k == nil {
-			return
+			return nil
 		}
 
 		// I need to skip to the correct id
-		c.Seek(offset)
+		initial := &bytes.Buffer{}
+		if err := binary.Write(initial, binary.BigEndian, offset); err != nil {
+			return err
+		}
+
+		c.Seek(initial.Bytes())
 
 		for k, v := c.First(); k != nil && limit > 0; k, v = c.Next() {
 			msg := logtap.Message{}
@@ -36,14 +42,14 @@ func (archive *BoltArchive) Slice(name string, offset, limit uint32, level int) 
 				return err
 			}
 
-			err = binary.Read(k, binary.BigEndian, &nextIdx)
+			err := binary.Read(bytes.NewBuffer(k), binary.BigEndian, &nextIdx)
 			if err != nil {
 				return err
 			}
 
-			if level < msg.Level {
+			if level < msg.Priority {
 				limit--
-				append(messages, msg)
+				messages = append(messages, msg)
 			}
 		}
 
@@ -70,19 +76,23 @@ func (archive *BoltArchive) Write(log hatchet.Logger, msg logtap.Message) {
 
 		// this needs to ensure lexographical order
 		key := &bytes.Buffer{}
-		nextLine := b.NextSequence()
+		nextLine, err := bucket.NextSequence()
+		if err != nil {
+			return err
+		}
+
 		if err = binary.Write(key, binary.BigEndian, nextLine); err != nil {
 			return err
 		}
 
-		if err = bucket.Put(key, value); err != nil {
+		if err = bucket.Put(key.Bytes(), value); err != nil {
 			return err
 		}
 
 		// trim the bucket to size
 		c := bucket.Cursor()
 		c.First()
-		for key_count := bucket.Stats().KeyN; key_count > archive.maxBucketSize; key_count-- {
+		for key_count := uint64(bucket.Stats().KeyN); key_count > archive.maxBucketSize; key_count-- {
 			c.Delete()
 			c.Next()
 		}
@@ -95,6 +105,7 @@ func (archive *BoltArchive) Write(log hatchet.Logger, msg logtap.Message) {
 		// 	c.Next()
 		// }
 
+		return nil
 	})
 
 	if err != nil {

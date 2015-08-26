@@ -4,7 +4,6 @@ package logtap
 
 import (
 	"github.com/pagodabox/golang-hatchet"
-	"reflect"
 	"time"
 )
 
@@ -17,6 +16,10 @@ const (
 )
 
 type (
+	Archive interface {
+		Slice(name string, offset, limit uint64, level int) ([]Message, uint64, error)
+	}
+
 	Drain func(hatchet.Logger, Message)
 
 	Message struct {
@@ -28,9 +31,10 @@ type (
 
 	Logtap struct {
 		log    hatchet.Logger
-		drains map[string]Drain
+		drains map[string]drainChannels
 	}
-	drain struct {
+
+	drainChannels struct {
 		send chan Message
 		done chan bool
 	}
@@ -44,7 +48,7 @@ func New(log hatchet.Logger) *Logtap {
 	}
 	return &Logtap{
 		log:    log,
-		Drains: make(map[string]chan Message),
+		drains: make(map[string]drainChannels),
 	}
 }
 
@@ -57,7 +61,7 @@ func (l *Logtap) Close() {
 
 // AddDrain addes a drain to the listeners and sets its logger
 func (l *Logtap) AddDrain(tag string, drain Drain) {
-	channels := drain{
+	channels := drainChannels{
 		done: make(chan bool),
 		send: make(chan Message),
 	}
@@ -67,7 +71,7 @@ func (l *Logtap) AddDrain(tag string, drain Drain) {
 			select {
 			case <-channels.done:
 				return
-			case msg <- channels.send:
+			case msg := <-channels.send:
 				drain(l.log, msg)
 			}
 		}
@@ -78,10 +82,10 @@ func (l *Logtap) AddDrain(tag string, drain Drain) {
 
 // RemoveDrain drops a drain
 func (l *Logtap) RemoveDrain(tag string) {
-	channels, ok := l.drains[tag]
+	drain, ok := l.drains[tag]
 	if ok {
-		channels.done <- true
-		close(channels.done)
+		drain.done <- true
+		close(drain.done)
 		delete(l.drains, tag)
 	}
 }

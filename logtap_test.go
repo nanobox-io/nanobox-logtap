@@ -1,4 +1,4 @@
-package logtap
+package logtap_test
 
 import (
 	"github.com/boltdb/bolt"
