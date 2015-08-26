@@ -16,137 +16,97 @@ const (
 	DEBUG
 )
 
-type Collector interface {
-	CollectChan() chan Message
-	SetLogger(hatchet.Logger)
-}
+type (
+	Drain func(hatchet.Logger, Message)
 
-type Drain interface {
-	Write(Message)
-	SetLogger(hatchet.Logger)
-}
+	Message struct {
+		Type     string    `json:"type"`
+		Time     time.Time `json:"time"`
+		Priority int       `json:"priority"`
+		Content  string    `json:"content"`
+	}
 
-type Message struct {
-	Type     string
-	Time     time.Time
-	Priority int
-	Content  string
-}
-
-type Logtap struct {
-	log        hatchet.Logger
-	Collectors map[string]Collector
-	Drains     map[string]Drain
-}
+	Logtap struct {
+		log    hatchet.Logger
+		drains map[string]Drain
+	}
+	drain struct {
+		send chan Message
+		done chan bool
+	}
+)
 
 // Establishes a new logtap object
-// and makes sure it has the some logger
+// and makes sure it has a logger
 func New(log hatchet.Logger) *Logtap {
 	if log == nil {
 		log = hatchet.DevNullLogger{}
 	}
 	return &Logtap{
-		log:        log,
-		Collectors: make(map[string]Collector),
-		Drains:     make(map[string]Drain),
+		log:    log,
+		Drains: make(map[string]chan Message),
+	}
+}
+
+// Close logtap and remove all drains
+func (l *Logtap) Close() {
+	for tag := range l.drains {
+		l.RemoveDrain(tag)
 	}
 }
 
 // AddDrain addes a drain to the listeners and sets its logger
-func (l *Logtap) AddDrain(tag string, d Drain) {
-	d.SetLogger(l.log)
-	l.Drains[tag] = d
+func (l *Logtap) AddDrain(tag string, drain Drain) {
+	channels := drain{
+		done: make(chan bool),
+		send: make(chan Message),
+	}
+
+	go func() {
+		for {
+			select {
+			case <-channels.done:
+				return
+			case msg <- channels.send:
+				drain(l.log, msg)
+			}
+		}
+	}()
+
+	l.drains[tag] = channels
 }
 
 // RemoveDrain drops a drain
 func (l *Logtap) RemoveDrain(tag string) {
-	delete(l.Drains, tag)
+	channels, ok := l.drains[tag]
+	if ok {
+		channels.done <- true
+		close(channels.done)
+		delete(l.drains, tag)
+	}
 }
 
-// AddCollector adds a collector and begins listening to it
-// also adds logging
-func (l *Logtap) AddCollector(tag string, c Collector) {
-	c.SetLogger(l.log)
-	l.Collectors[tag] = c
-}
-
-// RemoveCollector remove given collector
-func (l *Logtap) RemoveCollector(tag string) {
-	delete(l.Collectors, tag)
-}
-
-// Start begins listening to all the collectors that are registered.
-// it then broadcasts all messages to all the drains that are registered
-// this is backgrounded so it can be used by a parent process without getting in the way
-func (l *Logtap) Start() {
-	go func() {
-		for {
-			cases := make([]reflect.SelectCase, len(l.Collectors))
-			index := 0
-			for _, col := range l.Collectors {
-				cases[index] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(col.CollectChan())}
-				index++
-			}
-
-			_, value, ok := reflect.Select(cases)
-			// ok will be true if the channel has not been closed.
-			if ok {
-				l.log.Debug("[LOGTAP][start][collect] %v", value.Interface().(Message))
-				l.writeMessage(value.Interface().(Message))
-			}
-
-		}
-
-	}()
-}
-
-func (l *Logtap) Publish(category string, priority int, content string) {
+func (l *Logtap) Publish(kind string, priority int, content string) {
 	m := Message{
-		Type:     category,
+		Type:     kind,
 		Time:     time.Now(),
 		Priority: priority,
 		Content:  content,
 	}
-	l.writeMessage(m)
+	l.WriteMessage(m)
 }
 
-// writeMessage broadcasts to all drains in seperate go routines
-func (l *Logtap) writeMessage(msg Message) {
-	for _, drain := range l.Drains {
-		go drain.Write(msg)
-	}
-}
-
-func priorityString(priority int) string {
-	switch priority {
-	default:
-		return "info"
-	case FATAL:
-		return "fatal"
-	case ERROR:
-		return "error"
-	case WARN:
-		return "warn"
-	case INFO:
-		return "info"
-	case DEBUG:
-		return "debug"
-	}
-}
-
-func priorityInt(priority string) int {
-	switch priority {
-	default:
-		return INFO
-	case "fatal":
-		return FATAL
-	case "error":
-		return ERROR
-	case "warn":
-		return WARN
-	case "info":
-		return INFO
-	case "debug":
-		return DEBUG
+// WriteMessage broadcasts to all drains in seperate go routines
+// should this wait for the message to be processed by all drains?
+func (l *Logtap) WriteMessage(msg Message) {
+	for _, drain := range l.drains {
+		go func() {
+			select {
+			case <-drain.done:
+				close(drain.send)
+				drain.done <- true
+			case drain.send <- msg:
+			}
+		}()
 	}
 }

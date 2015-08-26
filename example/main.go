@@ -1,15 +1,37 @@
 package main
 
-import "github.com/pagodabox/nanobox-logtap"
-import "github.com/jcelliott/lumber"
-import "time"
+import (
+	"github.com/boltdb/bolt"
+	"github.com/jcelliott/lumber"
+	"github.com/pagodabox/nanobox-logtap"
+	"github.com/pagodabox/nanobox-logtap/api"
+	"github.com/pagodabox/nanobox-logtap/archive"
+	"github.com/pagodabox/nanobox-logtap/collector"
+	"github.com/pagodabox/nanobox-logtap/drain"
+)
 
 func main() {
 	log := lumber.NewConsoleLogger(lumber.INFO)
 	log.Prefix("[logtap]")
-	ltap := logtap.New(log)
-	ltap.Start()
-	
+
+	logTap := logtap.New(log)
+
+	db, err := bolt.Open("./test.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	defer db.Close()
+
+	boltArchive := archive.BoltArchive{
+		db:            db,
+		maxBucketSize: 10, // store only 10 lines
+	}
+
+	// add in all the drains that we have created
+	logTap.AddDrain("historical", boltArchive)
+	logTap.AddDrain("mist", mist)
+
 	sysc := logtap.NewSyslogCollector("514")
 	ltap.AddCollector("syslog", sysc)
 	sysc.Start()
