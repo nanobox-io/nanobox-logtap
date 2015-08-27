@@ -25,7 +25,7 @@ type (
 )
 
 //Map syslog levels to logging levels (FYI, they don't really match well)
-var adjust = map[int]int{
+var adjust = []int{
 	5, // Alert         -> FATAL
 	5, // Critical      -> FATAL
 	5, // Emergency     -> FATAL
