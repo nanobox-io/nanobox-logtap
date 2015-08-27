@@ -20,7 +20,7 @@ type (
 	Drain func(hatchet.Logger, Message)
 
 	Message struct {
-		Type     string    `json:-`
+		Type     string
 		Time     time.Time `json:"time"`
 		Priority int       `json:"priority"`
 		Content  string    `json:"content"`

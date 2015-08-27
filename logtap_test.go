@@ -7,6 +7,7 @@
 package logtap_test
 
 import (
+	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/jcelliott/lumber"
 	"github.com/pagodabox/golang-hatchet"
@@ -14,8 +15,8 @@ import (
 	"github.com/pagodabox/nanobox-logtap/archive"
 	"github.com/pagodabox/nanobox-logtap/drain"
 	"os"
-	"runtime"
 	"testing"
+	"time"
 )
 
 var log = lumber.NewConsoleLogger(lumber.TRACE)
@@ -47,20 +48,31 @@ func TestBolt(test *testing.T) {
 		os.Remove("./test.db")
 	}()
 
-	boltArchive := archive.BoltArchive{
+	boltArchive := &archive.BoltArchive{
 		DB:            db,
-		MaxBucketSize: 10, // store only 10 lines, it is a test.
+		MaxBucketSize: 10, // store only 10 chunks, this is a test.
 	}
 
 	logTap.AddDrain("historical", boltArchive.Write)
 	logTap.Publish("app", lumber.DEBUG, "you should see me!")
 
 	// let the other processes finish running
-	runtime.Gosched()
+	time.Sleep(100 * time.Millisecond)
 
 	slices, _, err := boltArchive.Slice("app", 0, 100, lumber.DEBUG)
 	assert(test, err == nil, "Slice errored %v", err)
 	assert(test, len(slices) == 1, "wrong number of slices %v", slices)
+
+	for i := 0; i < 100; i++ {
+		logTap.Publish("app", lumber.DEBUG, fmt.Sprintf("log line:%v", i))
+	}
+
+	// let the other processes finish running
+	time.Sleep(100 * time.Millisecond)
+
+	slices, _, err = boltArchive.Slice("app", 0, 100, lumber.DEBUG)
+	assert(test, err == nil, "Slice errored %v", err)
+	assert(test, len(slices) == 10, "wrong number of slices %v", len(slices))
 
 }
 

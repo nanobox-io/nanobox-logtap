@@ -8,6 +8,7 @@ package collector
 
 import (
 	"bufio"
+	"github.com/jeromer/syslogparser"
 	"github.com/jeromer/syslogparser/rfc3164"
 	"github.com/jeromer/syslogparser/rfc5424"
 	"github.com/pagodabox/nanobox-logtap"
@@ -15,6 +16,12 @@ import (
 	"net"
 	"strings"
 	"time"
+)
+
+type (
+	fakeSyslog struct {
+		data []byte
+	}
 )
 
 // Start begins listening to the syslog port transfers all
@@ -63,8 +70,6 @@ func SyslogTCPStart(kind, address string, l *logtap.Logtap) error {
 		if err != nil {
 			return err
 		}
-
-		// handle each connection individually (non-blocking)
 		go handleConnection(conn, kind, l)
 	}
 	return nil
@@ -73,10 +78,7 @@ func SyslogTCPStart(kind, address string, l *logtap.Logtap) error {
 func handleConnection(conn net.Conn, kind string, l *logtap.Logtap) {
 	r := bufio.NewReader(conn)
 
-	//
 	for {
-
-		// read messages coming across the tcp channel
 		line, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
 			// some unexpected error happened
@@ -95,33 +97,30 @@ func handleConnection(conn net.Conn, kind string, l *logtap.Logtap) {
 // it will drop the whole message into the content and make up a timestamp
 // and a priority
 func parseMessage(b []byte) (msg logtap.Message) {
-	p := rfc3164.NewParser(b)
-	err := p.Parse()
-	if err == nil {
-		parsedData := p.Dump()
-		// fmt.Printf("%#v\n",parsedData)
-		msg.Time = parsedData["timestamp"].(time.Time)
-		msg.Priority = adjustInt(parsedData["priority"].(int) % 8)
-		msg.Content = parsedData["tag"].(string) + " " + parsedData["content"].(string)
-	} else {
-		p := rfc5424.NewParser(b)
+	parsers = make([]syslogparser.LogParser, 3)
+	parsers[0] = rfc3164.NewParser(b)
+	parsers[1] = rfc5424.NewParser(b)
+	parsers[2] = &fakeSyslog{b}
+
+	for parser := range parsers {
 		err := p.Parse()
 		if err == nil {
 			parsedData := p.Dump()
-			// fmt.Printf("%#v\n",parsedData)
 			msg.Time = parsedData["timestamp"].(time.Time)
 			msg.Priority = adjustInt(parsedData["priority"].(int) % 8)
-			msg.Content = parsedData["tag"].(string) + " " + parsedData["content"].(string)
-		} else {
-			msg.Time = time.Now()
-			msg.Priority = 1
-			msg.Content = string(b)
+			tag, ok := parsedData["tag"]
+			select {
+			case ok:
+				msg.Content = tag.(string) + " " + parsedData["content"].(string)
+			default:
+				msg.Content = parsedData["content"].(string)
+			}
+			return
 		}
 	}
-	return
 }
 
-// I need to adjust the possible prioritys from rfc3164 and rfc5424
+// I need to adjust the possible priorities from rfc3164 and rfc5424
 // to the 5 priority options.
 func adjustInt(in int) int {
 	if in < 3 {
@@ -131,4 +130,21 @@ func adjustInt(in int) int {
 		return in - 2
 	}
 	return in - 3
+}
+
+// just a fake syslog parser
+func (fake *fakeSyslog) Parse() error {
+	return nil
+}
+
+func (fake *fakeSyslog) Dump() map[string]interface{} {
+	parsed := make(map[string]interface{}, 4)
+	parsed["timestamp"] = time.Now()
+	parsed["priority"] = 1
+	parsed["content"] = fake.data
+	return parsed
+}
+
+func (fake *fakeSyslog) Location() *time.Location {
+	return nil
 }
