@@ -24,6 +24,18 @@ type (
 	}
 )
 
+//Map syslog levels to logging levels (FYI, they don't really match well)
+var adjust = map[int]int{
+	5, // Alert         -> FATAL
+	5, // Critical      -> FATAL
+	5, // Emergency     -> FATAL
+	4, // Error         -> ERROR
+	3, // Warning       -> WARN
+	2, // Notice        -> INFO
+	2, // Informational -> INFO
+	1, // Debug         -> DEBUG
+}
+
 // Start begins listening to the syslog port transfers all
 // syslog messages on the wChan
 func SyslogUDPStart(kind, address string, l *logtap.Logtap) error {
@@ -107,7 +119,7 @@ func parseMessage(b []byte) (msg logtap.Message) {
 		if err == nil {
 			parsedData := p.Dump()
 			msg.Time = parsedData["timestamp"].(time.Time)
-			msg.Priority = adjustInt(parsedData["priority"].(int) % 8)
+			msg.Priority = adjust[parsedData["priority"].(int)] // parser guarantees [0,7]
 			tag, ok := parsedData["tag"]
 			select {
 			case ok:
@@ -120,18 +132,6 @@ func parseMessage(b []byte) (msg logtap.Message) {
 	}
 }
 
-// I need to adjust the possible priorities from rfc3164 and rfc5424
-// to the 5 priority options.
-func adjustInt(in int) int {
-	if in < 3 {
-		return 0
-	}
-	if in < 5 {
-		return in - 2
-	}
-	return in - 3
-}
-
 // just a fake syslog parser
 func (fake *fakeSyslog) Parse() error {
 	return nil
@@ -140,7 +140,7 @@ func (fake *fakeSyslog) Parse() error {
 func (fake *fakeSyslog) Dump() map[string]interface{} {
 	parsed := make(map[string]interface{}, 4)
 	parsed["timestamp"] = time.Now()
-	parsed["priority"] = 1
+	parsed["priority"] = 5
 	parsed["content"] = fake.data
 	return parsed
 }
