@@ -1,3 +1,9 @@
+// Copyright (c) 2015 Pagoda Box Inc
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License, v.
+// 2.0. If a copy of the MPL was not distributed with this file, You can obtain one
+// at http://mozilla.org/MPL/2.0/.
+//
 package collector
 
 import (
@@ -33,9 +39,13 @@ func SyslogUDPStart(kind, address string, l *logtap.Logtap) error {
 		}
 		if remote != nil {
 			if n > 0 {
-				msg := parseMessage(buf[0:n])
-				msg.Type = kind
-				l.WriteMessage(msg)
+				// handle parsing in another process so that this one can continue to receive
+				// UDP packets
+				go func(buf []byte) {
+					msg := parseMessage(buf[0:n])
+					msg.Type = kind
+					l.WriteMessage(msg)
+				}(buf)
 			}
 		}
 	}

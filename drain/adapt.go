@@ -1,19 +1,26 @@
+// Copyright (c) 2015 Pagoda Box Inc
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License, v.
+// 2.0. If a copy of the MPL was not distributed with this file, You can obtain one
+// at http://mozilla.org/MPL/2.0/.
+//
 package drain
 
 import (
 	"fmt"
-	"github.com/jcelliot/lumber"
+	"github.com/jcelliott/lumber"
+	"github.com/pagodabox/golang-hatchet"
 	"github.com/pagodabox/nanobox-logtap"
 	"io"
 )
 
 type Publisher interface {
-	publish(tag []string, data string)
+	Publish(tag []string, data string)
 }
 
 func AdaptWriter(writer io.Writer) logtap.Drain {
 	return func(log hatchet.Logger, msg logtap.Message) {
-		writer.write(fmt.Sprintf("[%s][%s] <%d> %s\n", msg.Type, msg.Time, msg.Priority, msg.Content))
+		writer.Write([]byte(fmt.Sprintf("[%s][%s] <%d> %s\n", msg.Type, msg.Time, msg.Priority, msg.Content)))
 	}
 }
 
@@ -22,11 +29,11 @@ func AdaptPublisher(publisher Publisher) logtap.Drain {
 		tags := []string{"log", msg.Type}
 		severities := []string{"fatal", "error", "warn", "info", "debug", "trace"}
 		tags = append(tags, severities[(msg.Priority%6):]...)
-		publisher.publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":%q}", msg.Time, msg.Content))
+		publisher.Publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":%q}", msg.Time, msg.Content))
 	}
 }
 
-func AdaptLogger(logger hatcher.Logger) logtap.Drain {
+func AdaptLogger(logger hatchet.Logger) logtap.Drain {
 	return func(log hatchet.Logger, msg logtap.Message) {
 		switch msg.Priority {
 		case lumber.TRACE:

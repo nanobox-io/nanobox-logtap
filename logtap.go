@@ -1,18 +1,15 @@
+// Copyright (c) 2015 Pagoda Box Inc
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License, v.
+// 2.0. If a copy of the MPL was not distributed with this file, You can obtain one
+// at http://mozilla.org/MPL/2.0/.
+//
 package logtap
-
-// Overview
 
 import (
 	"github.com/pagodabox/golang-hatchet"
+	"sync"
 	"time"
-)
-
-const (
-	FATAL = iota
-	ERROR
-	WARN
-	INFO
-	DEBUG
 )
 
 type (
@@ -23,7 +20,7 @@ type (
 	Drain func(hatchet.Logger, Message)
 
 	Message struct {
-		Type     string    `json:"type"`
+		Type     string    `json:-`
 		Time     time.Time `json:"time"`
 		Priority int       `json:"priority"`
 		Content  string    `json:"content"`
@@ -84,7 +81,6 @@ func (l *Logtap) AddDrain(tag string, drain Drain) {
 func (l *Logtap) RemoveDrain(tag string) {
 	drain, ok := l.drains[tag]
 	if ok {
-		drain.done <- true
 		close(drain.done)
 		delete(l.drains, tag)
 	}
@@ -101,16 +97,19 @@ func (l *Logtap) Publish(kind string, priority int, content string) {
 }
 
 // WriteMessage broadcasts to all drains in seperate go routines
-// should this wait for the message to be processed by all drains?
+// Returns once all drains have received the message, but may not have processed
+// the message yet
 func (l *Logtap) WriteMessage(msg Message) {
+	group := sync.WaitGroup{}
 	for _, drain := range l.drains {
-		go func() {
+		group.Add(1)
+		go func(myDrain drainChannels) {
 			select {
-			case <-drain.done:
-				close(drain.send)
-				drain.done <- true
-			case drain.send <- msg:
+			case <-myDrain.done:
+			case myDrain.send <- msg:
 			}
-		}()
+			group.Done()
+		}(drain)
 	}
+	group.Wait()
 }
