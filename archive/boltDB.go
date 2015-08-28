@@ -22,12 +22,12 @@ type (
 	}
 )
 
-func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) ([]logtap.Message, uint64, error) {
+func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) ([]logtap.Message, error) {
 	var messages []logtap.Message
-	var nextIdx uint64
 	err := archive.DB.View(func(tx *bolt.Tx) error {
 		messages = make([]logtap.Message, 0)
 		bucket := tx.Bucket([]byte(name))
+
 		if bucket == nil {
 			return nil
 		}
@@ -44,19 +44,12 @@ func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) 
 		}
 
 		c.Seek(initial.Bytes())
-
 		for k, v := c.First(); k != nil && limit > 0; k, v = c.Next() {
 			msg := logtap.Message{}
 			if err := json.Unmarshal(v, &msg); err != nil {
 				return err
 			}
-
-			err := binary.Read(bytes.NewBuffer(k), binary.BigEndian, &nextIdx)
-			if err != nil {
-				return err
-			}
-
-			if level <= msg.Priority {
+			if level >= msg.Priority {
 				limit--
 				messages = append(messages, msg)
 			}
@@ -66,9 +59,9 @@ func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) 
 	})
 
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	return messages, nextIdx, nil
+	return messages, nil
 }
 
 func (archive *BoltArchive) Write(log hatchet.Logger, msg logtap.Message) {

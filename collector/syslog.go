@@ -144,7 +144,7 @@ func (fake *fakeSyslog) Dump() syslogparser.LogParts {
 	parsed := make(map[string]interface{}, 4)
 	parsed["timestamp"] = time.Now()
 	parsed["severity"] = 5
-	parsed["content"] = fake.data
+	parsed["content"] = string(fake.data)
 	return parsed
 }
 

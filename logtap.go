@@ -14,7 +14,7 @@ import (
 
 type (
 	Archive interface {
-		Slice(name string, offset, limit uint64, level int) ([]Message, uint64, error)
+		Slice(name string, offset, limit uint64, level int) ([]Message, error)
 	}
 
 	Drain func(hatchet.Logger, Message)

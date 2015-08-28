@@ -8,34 +8,60 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/jcelliott/lumber"
 	"github.com/pagodabox/nanobox-logtap"
 	"net/http"
+	"strconv"
 )
 
 func GenerateArchiveEndpoint(archive logtap.Archive) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		code := 200
-		var body []byte
-
-		// where do these come from?
-		// name := req.FormValue("kind")
-		// offset := req.FormValue("offset")
-		// limit := req.FormValue("limit")
-		// level := req.FormValue("level")
-
-		slices, _, err := archive.Slice("app", 0, 100, 10)
-		if err != nil {
-			code = 500
-			body = []byte(err.Error())
-		} else {
-			body, err = json.Marshal(slices)
-			if err != nil {
-				code = 500
-				body = []byte(err.Error())
-			}
+		query := req.URL.Query()
+		name := query.Get("kind")
+		if name == "" {
+			name = "app"
+		}
+		offset := query.Get("offset")
+		if offset == "" {
+			offset = "0"
+		}
+		limit := query.Get("limit")
+		if limit == "" {
+			limit = "100"
+		}
+		level := query.Get("level")
+		if level == "" {
+			level = "INFO"
 		}
 
-		res.WriteHeader(code)
+		logLevel := lumber.LvlInt(level)
+		realOffset, err := strconv.Atoi(offset)
+		if err != nil {
+			res.WriteHeader(500)
+			res.Write([]byte("bad offset"))
+			return
+		}
+		realLimit, err := strconv.Atoi(limit)
+		if err != nil {
+			res.WriteHeader(500)
+			res.Write([]byte("bad limit"))
+			return
+		}
+		slices, err := archive.Slice(name, uint64(realOffset), uint64(realLimit), logLevel)
+		if err != nil {
+			res.WriteHeader(500)
+			res.Write([]byte(err.Error()))
+			return
+		}
+		body, err := json.Marshal(slices)
+		if err != nil {
+			res.WriteHeader(500)
+			res.Write([]byte(err.Error()))
+			return
+		}
+
+		res.WriteHeader(200)
 		res.Write(body)
+
 	}
 }
