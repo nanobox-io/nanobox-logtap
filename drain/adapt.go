@@ -18,7 +18,7 @@ type Publisher interface {
 	Publish(tag []string, data string)
 }
 
-func Filter(drain logtap.Drain, int level) {
+func Filter(drain logtap.Drain, level int) logtap.Drain {
 	return func(log hatchet.Logger, msg logtap.Message) {
 		if msg.Priority >= level {
 			drain(log, msg)
