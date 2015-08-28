@@ -18,6 +18,14 @@ type Publisher interface {
 	Publish(tag []string, data string)
 }
 
+func Filter(drain logtap.Drain, int level) {
+	return func(log hatchet.Logger, msg logtap.Message) {
+		if msg.Priority >= level {
+			drain(log, msg)
+		}
+	}
+}
+
 func AdaptWriter(writer io.Writer) logtap.Drain {
 	return func(log hatchet.Logger, msg logtap.Message) {
 		writer.Write([]byte(fmt.Sprintf("[%s][%s] <%d> %s\n", msg.Type, msg.Time, msg.Priority, msg.Content)))
