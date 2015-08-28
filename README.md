@@ -52,7 +52,7 @@ func main(){
   }
   defer udpCollector.Close()
 
-  logTap.Publish("logtap", 1, "logtap has started")
+  logTap.Publish("logtap", 1, "listening on udp port 514")
 
   c := make(chan os.Signal, 1)
   signal.Notify(c, os.Interrupt, os.Kill)
