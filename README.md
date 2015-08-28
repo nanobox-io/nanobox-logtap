@@ -58,7 +58,7 @@ func main(){
   signal.Notify(c, os.Interrupt, os.Kill)
 
   // wait for a signal to arrive
-  s := <-c
+  <-c
 }
 ```
 
