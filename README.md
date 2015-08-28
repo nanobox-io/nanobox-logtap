@@ -34,12 +34,12 @@ func main(){
   
   fatal, err := os.Create("/tmp/fatal.log")
   if err != nil {
-    fatal(err)
+    panic(err)
   }
   defer fatal.Close()
   info, err := os.Create("/tmp/info.log")
   if err != nil {
-    fatal(err)
+    panic(err)
   }
   defer info.Close()
 
@@ -48,7 +48,7 @@ func main(){
 
   udpCollector, err := collector.SyslogUDPStart("app-logs", ":514" ,logTap)
   if err != nil {
-    fatal(err)
+    panic(err)
   }
   defer udpCollector.Close()
 
