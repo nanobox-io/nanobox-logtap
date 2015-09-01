@@ -15,7 +15,7 @@ import (
 )
 
 type Publisher interface {
-	Publish(tag []string, data string)
+	Publish(tag []string, data string) error
 }
 
 func Filter(drain logtap.Drain, level int) logtap.Drain {
@@ -36,7 +36,7 @@ func AdaptPublisher(publisher Publisher) logtap.Drain {
 	return func(log hatchet.Logger, msg logtap.Message) {
 		tags := []string{"log", msg.Type}
 		severities := []string{"fatal", "error", "warn", "info", "debug", "trace"}
-		tags = append(tags, severities[(msg.Priority%6):]...)
+		tags = append(tags, severities[:(msg.Priority%6)]...)
 		publisher.Publish(tags, fmt.Sprintf("{\"time\":\"%s\",\"log\":%q}", msg.Time, msg.Content))
 	}
 }

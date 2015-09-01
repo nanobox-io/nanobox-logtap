@@ -15,13 +15,18 @@ import (
 
 // create and return a http handler that can be dropped into an api.
 func GenerateHttpCollector(kind string, l *logtap.Logtap) http.HandlerFunc {
+	headerName := "X-" + kind + "-Id"
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			return
 		}
 		logLevel := lumber.LvlInt(r.Header.Get("X-Log-Level"))
-		l.Publish(kind, logLevel, string(body))
+		header := r.Header.Get(headerName)
+		if header == "" {
+			header = kind
+		}
+		l.Publish(header, logLevel, string(body))
 	}
 }
 
