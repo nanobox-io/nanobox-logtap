@@ -9,7 +9,9 @@ package collector
 import (
 	"github.com/jcelliott/lumber"
 	"github.com/pagodabox/nanobox-logtap"
+	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 )
 
@@ -30,6 +32,12 @@ func GenerateHttpCollector(kind string, l *logtap.Logtap) http.HandlerFunc {
 	}
 }
 
-func StartHttpCollector(kind, address string, l *logtap.Logtap) error {
-	return http.ListenAndServe(address, GenerateHttpCollector(kind, l))
+func StartHttpCollector(kind, address string, l *logtap.Logtap) (io.Closer, error) {
+	httpListener, err := net.Listen("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+
+	go http.Serve(httpListener, GenerateHttpCollector(kind, l))
+	return httpListener, nil
 }

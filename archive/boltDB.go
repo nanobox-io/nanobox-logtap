@@ -22,6 +22,20 @@ type (
 	}
 )
 
+func NewBoltArchive(path string) (*BoltArchive, error) {
+	db, err := bolt.Open(path, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	archive := BoltArchive{
+		DB:            db,
+		MaxBucketSize: 1000,
+	}
+
+	return &archive, nil
+}
+
 func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) ([]logtap.Message, error) {
 	var messages []logtap.Message
 	err := archive.DB.View(func(tx *bolt.Tx) error {
