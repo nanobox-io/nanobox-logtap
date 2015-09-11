@@ -101,7 +101,7 @@ func TestApi(test *testing.T) {
 	}
 
 	logTap.AddDrain("historical", boltArchive.Write)
-	logTap.Publish("app", lumber.DEBUG, "you should see me!")
+	logTap.Publish("app", lumber.INFO, "you should see me!")
 
 	handler := api.GenerateArchiveEndpoint(boltArchive)
 
