@@ -79,6 +79,7 @@ func TestBolt(test *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	slices, err = boltArchive.Slice("app", 0, 100, lumber.DEBUG)
+	fmt.Println(slices)
 	assert(test, err == nil, "Slice errored %v", err)
 	assert(test, len(slices) == 10, "wrong number of slices %v", len(slices))
 
