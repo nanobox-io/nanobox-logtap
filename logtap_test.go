@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/jcelliott/lumber"
-	"github.com/nanobox-io/golang-hatchet"
 	"github.com/nanobox-io/nanobox-logtap"
 	"github.com/nanobox-io/nanobox-logtap/api"
 	"github.com/nanobox-io/nanobox-logtap/archive"
@@ -34,7 +33,7 @@ func TestBasic(test *testing.T) {
 	defer logTap.Close()
 	called := false
 
-	testDrain := func(l hatchet.Logger, msg logtap.Message) {
+	testDrain := func(l logtap.Logger, msg logtap.Message) {
 		called = true
 	}
 
@@ -130,7 +129,7 @@ func TestUDPCollector(test *testing.T) {
 	defer logTap.Close()
 	success := false
 
-	testDrain := func(l hatchet.Logger, msg logtap.Message) {
+	testDrain := func(l logtap.Logger, msg logtap.Message) {
 		success = true
 	}
 
@@ -162,7 +161,7 @@ func TestTCPCollector(test *testing.T) {
 	defer logTap.Close()
 	success := false
 
-	testDrain := func(l hatchet.Logger, msg logtap.Message) {
+	testDrain := func(l logtap.Logger, msg logtap.Message) {
 		success = true
 	}
 
@@ -188,7 +187,7 @@ func TestHTTPCollector(test *testing.T) {
 	defer logTap.Close()
 	success := false
 
-	testDrain := func(l hatchet.Logger, msg logtap.Message) {
+	testDrain := func(l logtap.Logger, msg logtap.Message) {
 		success = true
 	}
 
@@ -225,7 +224,7 @@ func benchmarkTest(b *testing.B, listenerCount int) {
 	defer logTap.Close()
 
 	group := sync.WaitGroup{}
-	testDrain := func(l hatchet.Logger, msg logtap.Message) {
+	testDrain := func(l logtap.Logger, msg logtap.Message) {
 		group.Done()
 	}
 

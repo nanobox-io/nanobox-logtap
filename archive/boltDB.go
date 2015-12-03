@@ -11,7 +11,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"github.com/boltdb/bolt"
-	"github.com/nanobox-io/golang-hatchet"
 	"github.com/nanobox-io/nanobox-logtap"
 )
 
@@ -78,7 +77,7 @@ func (archive *BoltArchive) Slice(name string, offset, limit uint64, level int) 
 	return messages, nil
 }
 
-func (archive *BoltArchive) Write(log hatchet.Logger, msg logtap.Message) {
+func (archive *BoltArchive) Write(log logtap.Logger, msg logtap.Message) {
 	err := archive.DB.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(msg.Type))
 		if err != nil {

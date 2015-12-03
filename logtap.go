@@ -7,17 +7,28 @@
 package logtap
 
 import (
-	"github.com/nanobox-io/golang-hatchet"
+	"github.com/jcelliott/lumber"
 	"sync"
 	"time"
 )
 
 type (
+	// Logger is a simple interface that's designed to be intentionally generic to
+	// allow many different types of Logger's to satisfy its interface
+	Logger interface {
+		Fatal(string, ...interface{})
+		Error(string, ...interface{})
+		Warn(string, ...interface{})
+		Info(string, ...interface{})
+		Debug(string, ...interface{})
+		Trace(string, ...interface{})
+	}	
+
 	Archive interface {
 		Slice(name string, offset, limit uint64, level int) ([]Message, error)
 	}
 
-	Drain func(hatchet.Logger, Message)
+	Drain func(Logger, Message)
 
 	Message struct {
 		Type     string
@@ -27,7 +38,7 @@ type (
 	}
 
 	Logtap struct {
-		log    hatchet.Logger
+		log    Logger
 		drains map[string]drainChannels
 	}
 
@@ -39,9 +50,9 @@ type (
 
 // Establishes a new logtap object
 // and makes sure it has a logger
-func New(log hatchet.Logger) *Logtap {
+func New(log Logger) *Logtap {
 	if log == nil {
-		log = hatchet.DevNullLogger{}
+		log = lumber.NewConsoleLogger(lumber.ERROR)
 	}
 	return &Logtap{
 		log:    log,

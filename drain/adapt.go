@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jcelliott/lumber"
-	"github.com/nanobox-io/golang-hatchet"
 	"github.com/nanobox-io/nanobox-logtap"
 	"io"
 )
@@ -20,7 +19,7 @@ type Publisher interface {
 }
 
 func Filter(drain logtap.Drain, level int) logtap.Drain {
-	return func(log hatchet.Logger, msg logtap.Message) {
+	return func(log logtap.Logger, msg logtap.Message) {
 		if msg.Priority >= level {
 			drain(log, msg)
 		}
@@ -28,13 +27,13 @@ func Filter(drain logtap.Drain, level int) logtap.Drain {
 }
 
 func AdaptWriter(writer io.Writer) logtap.Drain {
-	return func(log hatchet.Logger, msg logtap.Message) {
+	return func(log logtap.Logger, msg logtap.Message) {
 		writer.Write([]byte(fmt.Sprintf("[%s][%s] <%d> %s\n", msg.Type, msg.Time, msg.Priority, msg.Content)))
 	}
 }
 
 func AdaptPublisher(publisher Publisher) logtap.Drain {
-	return func(log hatchet.Logger, msg logtap.Message) {
+	return func(log logtap.Logger, msg logtap.Message) {
 		tags := []string{"log", msg.Type}
 		severities := []string{"trace", "debug", "info", "warn", "error", "fatal"}
 		tags = append(tags, severities[:((msg.Priority+1)%6)]...)
@@ -46,8 +45,8 @@ func AdaptPublisher(publisher Publisher) logtap.Drain {
 	}
 }
 
-func AdaptLogger(logger hatchet.Logger) logtap.Drain {
-	return func(log hatchet.Logger, msg logtap.Message) {
+func AdaptLogger(logger logtap.Logger) logtap.Drain {
+	return func(log logtap.Logger, msg logtap.Message) {
 		switch msg.Priority {
 		case lumber.TRACE:
 			logger.Trace(msg.Content)
